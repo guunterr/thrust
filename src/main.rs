@@ -11,6 +11,10 @@ use std::collections::HashSet;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 
+pub trait Shape {
+    pub fn display(x: i32, y: i32);
+}
+
 pub fn main() -> Result<(), String> {
     let sdl = sdl2::init()?;
     let video_subsystem = sdl.video()?;
