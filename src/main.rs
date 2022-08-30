@@ -14,7 +14,6 @@ use shape::{Circle, Rect, Shape};
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 
-
 fn main() -> Result<(), String> {
     let sdl = sdl2::init()?;
     let video_subsystem = sdl.video()?;
@@ -32,7 +31,12 @@ fn main() -> Result<(), String> {
 
     let mut event_pump = sdl.event_pump()?;
 
-    let mut rect = Rect::new(Vector2D::new(300.0, 300.0), 50.0, 50.0, Color::RGB(0, 255, 0));
+    let mut rect = Rect::new(
+        Vector2D::new(300.0, 300.0),
+        50.0,
+        50.0,
+        Color::RGB(0, 255, 0),
+    );
     let mut velocity = Vector2D::new(5.0, 0.0);
     let mut circle = Circle::new(Vector2D::new(100.0, 100.0), 50.0, Color::BLUE);
 
@@ -49,7 +53,6 @@ fn main() -> Result<(), String> {
         }
 
         input.get_keyboard_state(&event_pump);
-        
 
         if input.is_key_down(&Keycode::Left) {
             circle.pos.x -= 5.0;
@@ -63,7 +66,6 @@ fn main() -> Result<(), String> {
         if input.is_key_down(&Keycode::Down) {
             circle.pos.y += 5.0;
         }
-        
 
         canvas.set_draw_color(Color::RGB(255, 0, 0));
         canvas.clear();
