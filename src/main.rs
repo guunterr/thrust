@@ -1,21 +1,21 @@
 extern crate sdl2;
+pub mod input_handler;
+pub mod shape;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
-use sdl2::gfx::primitives::DrawRenderer;
 use std::time::Duration;
-use std::collections::HashSet;
+use vector2d::Vector2D;
+
+use input_handler::Input;
+use shape::{Circle, Rect, Shape};
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 
-pub trait Shape {
-    pub fn display(x: i32, y: i32);
-}
 
-pub fn main() -> Result<(), String> {
+fn main() -> Result<(), String> {
     let sdl = sdl2::init()?;
     let video_subsystem = sdl.video()?;
 
@@ -28,16 +28,13 @@ pub fn main() -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    let mut input = Input::new();
 
-    canvas.set_draw_color(Color::RGB(255, 0, 0));
-    canvas.clear();
-    canvas.present();
     let mut event_pump = sdl.event_pump()?;
-    let mut rect = Rect::new(SCREEN_WIDTH as i32 / 2 - 75, SCREEN_HEIGHT as i32 / 2 - 75, 150, 150);
-    let mut velocity = 5;
 
-    let mut circle_x = 100;
-    let mut circle_y = 100;
+    let mut rect = Rect::new(Vector2D::new(300.0, 300.0), 50.0, 50.0, Color::RGB(0, 255, 0));
+    let mut velocity = Vector2D::new(5.0, 0.0);
+    let mut circle = Circle::new(Vector2D::new(100.0, 100.0), 50.0, Color::BLUE);
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -51,39 +48,36 @@ pub fn main() -> Result<(), String> {
             }
         }
 
-        let keys = event_pump
-            .keyboard_state()
-            .pressed_scancodes()
-            .filter_map(Keycode::from_scancode)
-            .collect::<HashSet<_>>();
-        if keys.contains(&Keycode::Left) {
-            circle_x -= 5;
+        input.get_keyboard_state(&event_pump);
+        
+
+        if input.is_key_down(&Keycode::Left) {
+            circle.pos.x -= 5.0;
         }
-        if keys.contains(&Keycode::Right) {
-            circle_x += 5;
+        if input.is_key_down(&Keycode::Right) {
+            circle.pos.x += 5.0;
         }
-        if keys.contains(&Keycode::Up) {
-            circle_y -= 5;
+        if input.is_key_down(&Keycode::Up) {
+            circle.pos.y -= 5.0;
         }
-        if keys.contains(&Keycode::Down) {
-            circle_y += 5;
+        if input.is_key_down(&Keycode::Down) {
+            circle.pos.y += 5.0;
         }
         
 
         canvas.set_draw_color(Color::RGB(255, 0, 0));
         canvas.clear();
 
-        canvas.set_draw_color(Color::RGB(0, 255, 0));
-        canvas.draw_rect(rect)?;
-        canvas.fill_rect(rect)?;
+        rect.display(&canvas)?;
+        circle.display(&canvas)?;
 
-        canvas.filled_circle(circle_x, circle_y, 50, Color::BLUE)?;
         canvas.present();
+
         std::thread::sleep(Duration::from_millis(1_000u64 / 30));
-        // The rest of the game loop goes here...   
-        rect.set_x(rect.x() + velocity);
-        if rect.x() < 0 || ((SCREEN_WIDTH - rect.width()) as i32) < rect.x() {
-            velocity *= -1;
+
+        rect.pos += velocity;
+        if rect.pos.x < 0.0 || ((SCREEN_WIDTH - rect.w as u32) as i32) < rect.pos.x as i32 {
+            velocity *= -1.0;
         }
     }
 
