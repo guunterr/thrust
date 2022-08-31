@@ -26,7 +26,7 @@ impl PhysicsManager {
                 .filter(|body| body.shape.point_inside(&m.as_f64s(), &body.pos))
                 .next()
             {
-                body.pos = m.as_f64s();
+                body.pos += input.mouse_movement().as_f64s();
             }
         }
 

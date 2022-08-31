@@ -33,6 +33,7 @@ impl Input {
         self.keyboard_state_released.clear();
         self.mouse_state_pressed.clear();
         self.mouse_state_released.clear();
+        self.mouse_pos_diff = Vector2D::new(0, 0);
     }
 
     pub fn handle_event(&mut self, event: &Event) {
@@ -53,7 +54,7 @@ impl Input {
             }
             Event::MouseMotion { x, y, xrel, yrel, .. } => {
                 self.mouse_pos = Vector2D::new(*x, *y);
-                self.mouse_pos_diff = Vector2D::new(*xrel, *yrel);
+                self.mouse_pos_diff += Vector2D::new(*xrel, *yrel);
             }
             Event::MouseButtonDown { mouse_btn, .. } => {
                 self.mouse_state_pressed.insert(*mouse_btn);
