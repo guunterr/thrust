@@ -65,11 +65,11 @@ fn main() -> Result<(), String> {
             }
         }
 
-        canvas.set_draw_color(Color::RGB(255, 0, 0));
+        canvas.set_draw_color(Color::RGB(20, 20, 20));
         canvas.clear();
 
         physics_manager.update(&input);
-        physics_manager.display(&canvas);
+        physics_manager.display(&mut canvas, &input);
 
         canvas.present();
 
