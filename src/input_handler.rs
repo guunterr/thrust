@@ -1,5 +1,5 @@
 use sdl2::keyboard::Keycode;
-use sdl2::EventPump;
+use sdl2::event::Event;
 use std::collections::HashSet;
 
 pub struct Input {
@@ -12,12 +12,12 @@ impl Input {
         }
     }
 
-    pub fn get_keyboard_state(&mut self, event_pump: &EventPump) {
-        self.keys = event_pump
-            .keyboard_state()
-            .pressed_scancodes()
-            .filter_map(Keycode::from_scancode)
-            .collect::<HashSet<_>>();
+    pub fn handle_event(&mut self, event: &Event) {
+        match event {
+            Event::KeyDown { keycode: Some(code), .. } => {self.keys.insert(*code);},
+            Event::KeyUp { keycode: Some(code), .. } => {self.keys.remove(code);},
+            _ => (),
+        }
     }
 
     pub fn is_key_down(&self, key: &Keycode) -> bool {

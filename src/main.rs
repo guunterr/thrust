@@ -53,6 +53,7 @@ fn main() -> Result<(), String> {
 
     'running: loop {
         for event in event_pump.poll_iter() {
+            input.handle_event(&event);
             match event {
                 Event::Quit { .. }
                 | Event::KeyDown {
@@ -62,8 +63,6 @@ fn main() -> Result<(), String> {
                 _ => {}
             }
         }
-
-        input.get_keyboard_state(&event_pump);
 
         if input.is_key_down(&Keycode::Left) {
             rect.add_force(Vector2D::new(-shape_acc, 0.0));
