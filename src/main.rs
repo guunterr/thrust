@@ -52,6 +52,7 @@ fn main() -> Result<(), String> {
     );
 
     'running: loop {
+        input.update();
         for event in event_pump.poll_iter() {
             input.handle_event(&event);
             match event {
