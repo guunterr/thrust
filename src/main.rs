@@ -1,6 +1,6 @@
 extern crate sdl2;
 pub mod input_handler;
-pub mod physics;
+pub mod rigidbody;
 pub mod shape;
 
 use sdl2::event::Event;
@@ -10,7 +10,7 @@ use std::time::Duration;
 use vector2d::Vector2D;
 
 use input_handler::Input;
-use physics::RigidBody;
+use rigidbody::RigidBody;
 use shape::{Circle, Rect};
 
 const SCREEN_WIDTH: u32 = 800;
