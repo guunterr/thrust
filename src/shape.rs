@@ -3,9 +3,10 @@ use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
+
 pub trait Shape {
-    fn display(&self, canvas: &Canvas<Window>) -> Result<(), String>;
-    fn collides(&self, other: &dyn Shape) -> bool;
+    fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) -> Result<(), String>;
+    fn intersects(&self, other: &dyn Shape) -> bool;
 }
 
 pub struct Circle {
@@ -20,15 +21,15 @@ impl Circle {
 }
 
 impl Shape for Circle {
-    fn display(&self, canvas: &Canvas<Window>) -> Result<(), String> {
+    fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) -> Result<(), String> {
         canvas.filled_circle(
-            self.pos.x as i16,
-            self.pos.y as i16,
+            (self.pos.x + pos.x) as i16,
+            (self.pos.y + pos.y) as i16,
             self.r as i16,
             self.color,
         )
     }
-    fn collides(&self, other: &dyn Shape) -> bool {
+    fn intersects(&self, other: &dyn Shape) -> bool {
         false
     }
 }
@@ -45,24 +46,15 @@ impl Rect {
     }
 }
 impl Shape for Rect {
-    fn display(&self, canvas: &Canvas<Window>) -> Result<(), String> {
+    fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) -> Result<(), String> {
+        let Vector2D { x, y } = self.pos + *pos;
         canvas.filled_polygon(
-            &[
-                self.pos.x as i16,
-                self.pos.x as i16,
-                (self.pos.x + self.w) as i16,
-                (self.pos.x + self.w) as i16,
-            ],
-            &[
-                self.pos.y as i16,
-                (self.pos.y + self.h) as i16,
-                (self.pos.y + self.h) as i16,
-                self.pos.y as i16,
-            ],
+            &[x as i16, x as i16, (x + self.w) as i16, (x + self.w) as i16],
+            &[y as i16, (y + self.h) as i16, (y + self.h) as i16, y as i16],
             self.color,
         )
     }
-    fn collides(&self, other: &dyn Shape) -> bool {
+    fn intersects(&self, other: &dyn Shape) -> bool {
         false
     }
 }

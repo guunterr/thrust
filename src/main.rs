@@ -1,5 +1,6 @@
 extern crate sdl2;
 pub mod input_handler;
+pub mod physics;
 pub mod shape;
 
 use sdl2::event::Event;
@@ -9,7 +10,8 @@ use std::time::Duration;
 use vector2d::Vector2D;
 
 use input_handler::Input;
-use shape::{Circle, Rect, Shape};
+use physics::RigidBody;
+use shape::{Circle, Rect};
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
@@ -31,14 +33,23 @@ fn main() -> Result<(), String> {
 
     let mut event_pump = sdl.event_pump()?;
 
-    let mut rect = Rect::new(
+    let shape_acc = 3.0;
+    let mut rect = RigidBody::new(
         Vector2D::new(300.0, 300.0),
-        50.0,
-        50.0,
-        Color::RGB(0, 255, 0),
+        1.0,
+        Box::new(Rect::new(
+            Vector2D::new(-25.0, -25.0),
+            50.0,
+            50.0,
+            Color::RGB(0, 255, 0),
+        )),
     );
-    let mut velocity = Vector2D::new(5.0, 0.0);
-    let mut circle = Circle::new(Vector2D::new(100.0, 100.0), 50.0, Color::BLUE);
+
+    let mut circle = RigidBody::new(
+        Vector2D::new(100.0, 100.0),
+        1.0,
+        Box::new(Circle::new(Vector2D::new(0.0, 0.0), 50.0, Color::BLUE)),
+    );
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -55,32 +66,42 @@ fn main() -> Result<(), String> {
         input.get_keyboard_state(&event_pump);
 
         if input.is_key_down(&Keycode::Left) {
-            circle.pos.x -= 5.0;
+            rect.add_force(Vector2D::new(-shape_acc, 0.0));
         }
         if input.is_key_down(&Keycode::Right) {
-            circle.pos.x += 5.0;
+            rect.add_force(Vector2D::new(shape_acc, 0.0));
         }
         if input.is_key_down(&Keycode::Up) {
-            circle.pos.y -= 5.0;
+            rect.add_force(Vector2D::new(0.0, -shape_acc));
         }
         if input.is_key_down(&Keycode::Down) {
-            circle.pos.y += 5.0;
+            rect.add_force(Vector2D::new(0.0, shape_acc));
+        }
+
+        if input.is_key_down(&Keycode::A) {
+            circle.add_force(Vector2D::new(-shape_acc, 0.0));
+        }
+        if input.is_key_down(&Keycode::D) {
+            circle.add_force(Vector2D::new(shape_acc, 0.0));
+        }
+        if input.is_key_down(&Keycode::W) {
+            circle.add_force(Vector2D::new(0.0, -shape_acc));
+        }
+        if input.is_key_down(&Keycode::S) {
+            circle.add_force(Vector2D::new(0.0, shape_acc));
         }
 
         canvas.set_draw_color(Color::RGB(255, 0, 0));
         canvas.clear();
 
+        circle.integrate();
+        rect.integrate();
         rect.display(&canvas)?;
         circle.display(&canvas)?;
 
         canvas.present();
 
         std::thread::sleep(Duration::from_millis(1_000u64 / 30));
-
-        rect.pos += velocity;
-        if rect.pos.x < 0.0 || ((SCREEN_WIDTH - rect.w as u32) as i32) < rect.pos.x as i32 {
-            velocity *= -1.0;
-        }
     }
 
     Ok(())
