@@ -1,5 +1,6 @@
 extern crate sdl2;
 pub mod input_handler;
+pub mod physics;
 pub mod rigidbody;
 pub mod shape;
 
@@ -10,6 +11,7 @@ use std::time::Duration;
 use vector2d::Vector2D;
 
 use input_handler::Input;
+use physics::PhysicsManager;
 use rigidbody::RigidBody;
 use shape::{Circle, Rect};
 
@@ -30,11 +32,9 @@ fn main() -> Result<(), String> {
 
     let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
     let mut input = Input::new();
+    let mut physics_manager = PhysicsManager::new();
 
-    let mut event_pump = sdl.event_pump()?;
-
-    let shape_acc = 3.0;
-    let mut rect = RigidBody::new(
+    physics_manager.add_body(RigidBody::new(
         Vector2D::new(300.0, 300.0),
         1.0,
         Box::new(Rect::new(
@@ -43,14 +43,14 @@ fn main() -> Result<(), String> {
             50.0,
             Color::RGB(0, 255, 0),
         )),
-    );
-
-    let mut circle = RigidBody::new(
+    ));
+    physics_manager.add_body(RigidBody::new(
         Vector2D::new(100.0, 100.0),
         1.0,
         Box::new(Circle::new(Vector2D::new(0.0, 0.0), 50.0, Color::BLUE)),
-    );
+    ));
 
+    let mut event_pump = sdl.event_pump()?;
     'running: loop {
         input.update();
         for event in event_pump.poll_iter() {
@@ -65,39 +65,11 @@ fn main() -> Result<(), String> {
             }
         }
 
-        if input.is_key_down(&Keycode::Left) {
-            rect.add_force(Vector2D::new(-shape_acc, 0.0));
-        }
-        if input.is_key_down(&Keycode::Right) {
-            rect.add_force(Vector2D::new(shape_acc, 0.0));
-        }
-        if input.is_key_down(&Keycode::Up) {
-            rect.add_force(Vector2D::new(0.0, -shape_acc));
-        }
-        if input.is_key_down(&Keycode::Down) {
-            rect.add_force(Vector2D::new(0.0, shape_acc));
-        }
-
-        if input.is_key_down(&Keycode::A) {
-            circle.add_force(Vector2D::new(-shape_acc, 0.0));
-        }
-        if input.is_key_down(&Keycode::D) {
-            circle.add_force(Vector2D::new(shape_acc, 0.0));
-        }
-        if input.is_key_down(&Keycode::W) {
-            circle.add_force(Vector2D::new(0.0, -shape_acc));
-        }
-        if input.is_key_down(&Keycode::S) {
-            circle.add_force(Vector2D::new(0.0, shape_acc));
-        }
-
         canvas.set_draw_color(Color::RGB(255, 0, 0));
         canvas.clear();
 
-        circle.integrate();
-        rect.integrate();
-        rect.display(&canvas)?;
-        circle.display(&canvas)?;
+        physics_manager.update(&input);
+        physics_manager.display(&canvas);
 
         canvas.present();
 

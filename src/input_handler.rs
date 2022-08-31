@@ -1,6 +1,6 @@
 use sdl2::event::Event;
-use sdl2::mouse::MouseButton;
 use sdl2::keyboard::Keycode;
+use sdl2::mouse::MouseButton;
 use std::collections::HashSet;
 use vector2d::Vector2D;
 
@@ -9,6 +9,7 @@ pub struct Input {
     keyboard_state_pressed: HashSet<Keycode>,
     keyboard_state_released: HashSet<Keycode>,
     mouse_pos: Vector2D<i32>,
+    mouse_pos_diff: Vector2D<i32>,
     mouse_state: HashSet<MouseButton>,
     mouse_state_pressed: HashSet<MouseButton>,
     mouse_state_released: HashSet<MouseButton>,
@@ -20,6 +21,7 @@ impl Input {
             keyboard_state_pressed: HashSet::new(),
             keyboard_state_released: HashSet::new(),
             mouse_pos: Vector2D::new(0, 0),
+            mouse_pos_diff: Vector2D::new(0, 0),
             mouse_state: HashSet::new(),
             mouse_state_pressed: HashSet::new(),
             mouse_state_released: HashSet::new(),
@@ -49,7 +51,10 @@ impl Input {
                 self.keyboard_state_released.insert(*code);
                 self.keyboard_state.remove(&code);
             }
-            Event::MouseMotion { x, y, .. } => self.mouse_pos = Vector2D::new(*x, *y),
+            Event::MouseMotion { x, y, xrel, yrel, .. } => {
+                self.mouse_pos = Vector2D::new(*x, *y);
+                self.mouse_pos_diff = Vector2D::new(*xrel, *yrel);
+            }
             Event::MouseButtonDown { mouse_btn, .. } => {
                 self.mouse_state_pressed.insert(*mouse_btn);
                 self.mouse_state.insert(*mouse_btn);
@@ -80,5 +85,12 @@ impl Input {
     }
     pub fn is_mouse_released(&self, key: &MouseButton) -> bool {
         self.mouse_state_released.contains(key)
+    }
+
+    pub fn mouse_position(&self) -> Vector2D<i32> {
+        self.mouse_pos.clone()
+    }
+    pub fn mouse_movement(&self) -> Vector2D<i32> {
+        self.mouse_pos_diff.clone()
     }
 }

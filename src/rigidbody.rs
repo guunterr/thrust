@@ -9,7 +9,7 @@ pub struct RigidBody {
     vel: Vector2D<f64>,
     acc: Vector2D<f64>,
     mass: f64,
-    shape: Box<dyn Shape>,
+    pub shape: Box<dyn Shape>,
 }
 impl RigidBody {
     pub fn new(pos: Vector2D<f64>, mass: f64, shape: Box<dyn Shape>) -> Self {
@@ -54,7 +54,7 @@ impl RigidBody {
         }
     }
 
-    pub fn display(&self, canvas: &Canvas<Window>) -> Result<(), String> {
+    pub fn display(&self, canvas: &Canvas<Window>) {
         self.shape.display(canvas, &self.pos)
     }
 }

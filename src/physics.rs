@@ -1,60 +1,65 @@
-use crate::shape::Shape;
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::input_handler::Input;
+use crate::rigidbody::RigidBody;
+use sdl2::keyboard::Keycode;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
 
-pub struct RigidBody {
-    pub pos: Vector2D<f64>,
-    vel: Vector2D<f64>,
-    acc: Vector2D<f64>,
-    mass: f64,
-    shape: Box<dyn Shape>,
+pub struct PhysicsManager {
+    bodies: Vec<RigidBody>,
 }
-impl RigidBody {
-    pub fn new(pos: Vector2D<f64>, mass: f64, shape: Box<dyn Shape>) -> Self {
-        RigidBody {
-            pos,
-            vel: Vector2D::new(0.0, 0.0),
-            acc: Vector2D::new(0.0, 0.0),
-            mass,
-            shape,
-        }
+impl PhysicsManager {
+    pub fn new() -> PhysicsManager {
+        PhysicsManager { bodies: Vec::new() }
     }
-    pub fn set_vel(&mut self, vel: Vector2D<f64>) {
-        self.vel = vel;
-    }
-    pub fn add_acc(&mut self, acc: Vector2D<f64>) {
-        self.acc = acc;
-    }
-    pub fn add_force(&mut self, force: Vector2D<f64>) {
-        self.acc += force / self.mass;
+    pub fn add_body(&mut self, body: RigidBody) {
+        self.bodies.push(body);
     }
 
-    pub fn integrate(&mut self) {
-        self.pos += self.vel;
-        self.vel += self.acc;
-        self.acc = Vector2D::new(0.0, 0.0);
+    pub fn update(&mut self, input: &Input) {
+        use sdl2::mouse::MouseButton;
+        if input.is_mouse_down(&MouseButton::Left) {
+            let m = input.mouse_position();
+            if let Some(body) = self
+                .bodies
+                .iter_mut()
+                .filter(|body| body.shape.point_inside(&m.as_f64s(), &body.pos))
+                .next()
+            {
+                body.pos = m.as_f64s();
+            }
+        }
 
-        if self.pos.x < 0.0 {
-            self.pos.x = 0.0;
-            self.vel.x = self.vel.x.abs();
+        let shape_acc = 3.0;
+        if input.is_key_down(&Keycode::Left) {
+            self.bodies[0].add_force(Vector2D::new(-shape_acc, 0.0));
         }
-        if self.pos.x > SCREEN_WIDTH as f64 {
-            self.pos.x = SCREEN_WIDTH as f64;
-            self.vel.x = -self.vel.x.abs();
+        if input.is_key_down(&Keycode::Right) {
+            self.bodies[0].add_force(Vector2D::new(shape_acc, 0.0));
         }
-        if self.pos.y < 0.0 {
-            self.pos.y = 0.0;
-            self.vel.y = self.vel.y.abs();
+        if input.is_key_down(&Keycode::Up) {
+            self.bodies[0].add_force(Vector2D::new(0.0, -shape_acc));
         }
-        if self.pos.y > SCREEN_HEIGHT as f64 {
-            self.pos.y = SCREEN_HEIGHT as f64;
-            self.vel.y = -self.vel.y.abs();
+        if input.is_key_down(&Keycode::Down) {
+            self.bodies[0].add_force(Vector2D::new(0.0, shape_acc));
         }
+
+        if input.is_key_down(&Keycode::A) {
+            self.bodies[1].add_force(Vector2D::new(-shape_acc, 0.0));
+        }
+        if input.is_key_down(&Keycode::D) {
+            self.bodies[1].add_force(Vector2D::new(shape_acc, 0.0));
+        }
+        if input.is_key_down(&Keycode::W) {
+            self.bodies[1].add_force(Vector2D::new(0.0, -shape_acc));
+        }
+        if input.is_key_down(&Keycode::S) {
+            self.bodies[1].add_force(Vector2D::new(0.0, shape_acc));
+        }
+
+        self.bodies.iter_mut().for_each(|body| body.integrate());
     }
-
-    pub fn display(&self, canvas: &Canvas<Window>) -> Result<(), String> {
-        self.shape.display(canvas, &self.pos)
+    pub fn display(&self, canvas: &Canvas<Window>) {
+        self.bodies.iter().for_each(|body| body.display(canvas))
     }
 }
