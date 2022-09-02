@@ -4,6 +4,15 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
 
+#[derive(Debug, PartialEq)]
+pub struct Manifold<'a> {
+    body1: &'a RigidBody,
+    body2: &'a RigidBody,
+    normal_vector: Vector2D<f64>,
+    depth: f64,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct RigidBody {
     pub pos: Vector2D<f64>,
     vel: Vector2D<f64>,
@@ -60,6 +69,17 @@ impl RigidBody {
 
     pub fn intersects(&self, other: &RigidBody) -> bool {
         Shape::intersects(&self.shape, &self.pos, &other.shape, &other.pos)
+    }
+
+    pub fn manifold<'a>(&'a self, other: &'a RigidBody) -> Manifold<'a> {
+        let (normal_vector, depth) =
+            Shape::collision_data(&self.shape, &self.pos, &other.shape, &other.pos);
+        Manifold {
+            body1: self,
+            body2: other,
+            normal_vector,
+            depth,
+        }
     }
 
     pub fn point_inside(&self, point: &Vector2D<f64>) -> bool {

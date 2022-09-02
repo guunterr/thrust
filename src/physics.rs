@@ -1,4 +1,5 @@
 use crate::input_handler::Input;
+use crate::rigidbody::Manifold;
 use crate::rigidbody::RigidBody;
 use sdl2::keyboard::Keycode;
 use sdl2::render::Canvas;
@@ -10,7 +11,6 @@ pub struct PhysicsManager {
     selected_index: Option<usize>,
     selected_offset: Option<Vector2D<f64>>,
 }
-
 
 impl PhysicsManager {
     pub fn new() -> PhysicsManager {
@@ -25,6 +25,27 @@ impl PhysicsManager {
     }
 
     pub fn update(&mut self, input: &Input) {
+        self.handle_user_input(input);
+        self.bodies.iter_mut().for_each(|body| body.integrate());
+
+        let manifolds: Vec<Manifold> = self
+            .bodies
+            .iter()
+            .enumerate()
+            .flat_map(|(i, b1)| {
+                self.bodies
+                    .iter()
+                    .skip(i+1)
+                    .map(move |b2| (b1, b2))
+                    .filter(|(b1, b2)| b1.intersects(b2))
+            })
+            .map(|(b1, b2)| b1.manifold(b2))
+            .collect();
+
+        println!("{:?}", manifolds.len());
+    }
+
+    fn handle_user_input(&mut self, input: &Input) {
         use sdl2::mouse::MouseButton;
         if input.is_mouse_pressed(&MouseButton::Left) || input.is_mouse_pressed(&MouseButton::Right)
         {
@@ -94,8 +115,6 @@ impl PhysicsManager {
         if input.is_key_down(&Keycode::S) {
             self.bodies[1].add_force(Vector2D::new(0.0, shape_acc));
         }
-
-        self.bodies.iter_mut().for_each(|body| body.integrate());
     }
 
     pub fn display(&self, canvas: &mut Canvas<Window>, input: &Input) {
@@ -108,7 +127,9 @@ impl PhysicsManager {
                 let start = input.mouse_position();
                 let end = (self.bodies[i].pos + offset).as_i32s();
                 canvas.set_draw_color(Color::RGB(255, 0, 0));
-                canvas.draw_line((start.x, start.y), (end.x, end.y)).unwrap();
+                canvas
+                    .draw_line((start.x, start.y), (end.x, end.y))
+                    .unwrap();
             }
         }
     }

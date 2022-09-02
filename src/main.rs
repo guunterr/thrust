@@ -51,6 +51,23 @@ fn main() -> Result<(), String> {
             color: Color::BLUE,
         },
     ));
+    physics_manager.add_body(RigidBody::new(
+        Vector2D::new(200.0, 200.0),
+        1.0,
+        Shape::Rect {
+            w: 50.0,
+            h: 50.0,
+            color: Color::RGB(0, 255, 0),
+        },
+    ));
+    physics_manager.add_body(RigidBody::new(
+        Vector2D::new(400.0, 400.0),
+        1.0,
+        Shape::Circle {
+            r: 50.0,
+            color: Color::BLUE,
+        },
+    ));
 
     let mut event_pump = sdl.event_pump()?;
     'running: loop {
