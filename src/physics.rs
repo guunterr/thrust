@@ -10,6 +10,8 @@ pub struct PhysicsManager {
     selected_index: Option<usize>,
     selected_offset: Option<Vector2D<f64>>,
 }
+
+
 impl PhysicsManager {
     pub fn new() -> PhysicsManager {
         PhysicsManager {
@@ -31,7 +33,7 @@ impl PhysicsManager {
                 .bodies
                 .iter_mut()
                 .enumerate()
-                .filter(|(_, body)| body.shape.point_inside(&m, &body.pos))
+                .filter(|(_, body)| body.point_inside(&m))
                 .next()
                 .map(|element| element.0);
 

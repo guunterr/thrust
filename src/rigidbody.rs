@@ -9,10 +9,10 @@ pub struct RigidBody {
     vel: Vector2D<f64>,
     acc: Vector2D<f64>,
     mass: f64,
-    pub shape: Box<dyn Shape>,
+    shape: Shape,
 }
 impl RigidBody {
-    pub fn new(pos: Vector2D<f64>, mass: f64, shape: Box<dyn Shape>) -> Self {
+    pub fn new(pos: Vector2D<f64>, mass: f64, shape: Shape) -> Self {
         RigidBody {
             pos,
             vel: Vector2D::new(0.0, 0.0),
@@ -56,5 +56,13 @@ impl RigidBody {
 
     pub fn display(&self, canvas: &Canvas<Window>) {
         self.shape.display(canvas, &self.pos)
+    }
+
+    pub fn intersects(&self, other: &RigidBody) -> bool {
+        Shape::intersects(&self.shape, &self.pos, &other.shape, &other.pos)
+    }
+
+    pub fn point_inside(&self, point: &Vector2D<f64>) -> bool {
+        self.shape.point_inside(point, &self.pos)
     }
 }

@@ -4,70 +4,76 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
 
-pub trait Shape {
-    fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>);
-    fn intersects(&self, other: &dyn Shape) -> bool;
-    fn point_inside(&self, point: &Vector2D<f64>, pos: &Vector2D<f64>) -> bool;
+pub enum Shape {
+    Rect { w: f64, h: f64, color: Color },
+    Circle { r: f64, color: Color },
 }
 
-pub struct Circle {
-    pub pos: Vector2D<f64>,
-    pub r: f64,
-    pub color: Color,
-}
-impl Circle {
-    pub fn new(pos: Vector2D<f64>, r: f64, color: Color) -> Self {
-        Circle { pos, r, color }
-    }
-}
 
-impl Shape for Circle {
-    fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) {
-        canvas
-            .filled_circle(
-                (self.pos.x + pos.x) as i16,
-                (self.pos.y + pos.y) as i16,
-                self.r as i16,
-                self.color,
-            )
-            .unwrap();
+impl Shape {
+    pub fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) {
+        match self {
+            Shape::Rect { w, h, color } => {
+                canvas
+                    .filled_polygon(
+                        &[
+                            (pos.x - w/2.0) as i16,
+                            (pos.x - w/2.0) as i16,
+                            (pos.x + w/2.0) as i16,
+                            (pos.x + w/2.0) as i16,
+                        ],
+                        &[
+                            (pos.y - h/2.0) as i16,
+                            (pos.y + h/2.0) as i16,
+                            (pos.y + h/2.0) as i16,
+                            (pos.y - h/2.0) as i16,
+                        ],
+                        *color,
+                    )
+                    .unwrap();
+            }
+            Shape::Circle { r, color } => {
+                canvas
+                    .filled_circle(pos.x as i16, pos.y as i16, *r as i16, *color)
+                    .unwrap();
+            }
+        }
     }
-    fn intersects(&self, other: &dyn Shape) -> bool {
-        false
-    }
-    fn point_inside(&self, point: &Vector2D<f64>, pos: &Vector2D<f64>) -> bool {
-        let dist = (self.pos + *pos - *point).length_squared();
-        dist < self.r.powi(2)
-    }
-}
 
-pub struct Rect {
-    pub pos: Vector2D<f64>,
-    pub w: f64,
-    pub h: f64,
-    pub color: Color,
-}
-impl Rect {
-    pub fn new(pos: Vector2D<f64>, w: f64, h: f64, color: Color) -> Self {
-        Rect { pos, w, h, color }
+    pub fn point_inside(&self, offset: &Vector2D<f64>, point: &Vector2D<f64>) -> bool {
+        return match self {
+            Shape::Rect { w, h, .. } => {
+                let &Vector2D { x, y } = offset;
+                point.x > x-w/2.0 && point.x < x+w/2.0 && point.y > y-h/2.0 && point.y < y+h/2.0
+            }
+            Shape::Circle { r, .. } => {
+                let dist = (offset - point).length_squared();
+                dist < r.powi(2)
+            }
+        };
     }
-}
-impl Shape for Rect {
-    fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) {
-        let Vector2D { x, y } = self.pos + *pos;
-        canvas
-            .filled_polygon(
-                &[x as i16, x as i16, (x + self.w) as i16, (x + self.w) as i16],
-                &[y as i16, (y + self.h) as i16, (y + self.h) as i16, y as i16],
-                self.color,
-            )
-            .unwrap();
-    }
-    fn intersects(&self, other: &dyn Shape) -> bool {
-        false
-    }
-    fn point_inside(&self, point: &Vector2D<f64>, pos: &Vector2D<f64>) -> bool {
-        let Vector2D { x, y } = self.pos + *pos;
-        point.x > x && point.x < x + self.w && point.y > y && point.y < y + self.h
+
+    pub fn intersects(
+        shape1: &Shape,
+        pos1: &Vector2D<f64>,
+        shape2: &Shape,
+        pos2: &Vector2D<f64>,
+    ) -> bool {
+        match (shape1, shape2) {
+            (Shape::Rect { w: w1, h: h1, .. }, Shape::Rect { .. }) => {
+                pos2.x > pos1.x && pos2.x < pos1.x + w1 && pos2.y > pos1.y && pos2.y < pos1.y + h1
+            },
+            (Shape::Rect { w, h, .. }, Shape::Circle { r, .. }) => {
+                let close_x = pos2.x.max(pos1.x-w/2.0).min(pos1.x+w/2.0);
+                let close_y = pos2.y.max(pos1.y-h/2.0).min(pos1.y+h/2.0);
+                let dist = (pos2 - &Vector2D::new(close_x, close_y)).length_squared();
+                dist < r.powi(2)
+            },
+            (Shape::Circle { r: r1, .. }, Shape::Circle { r: r2, .. }) => {
+                let dist = (*pos1 - *pos2).length_squared();
+                dist < (r1 + r2).powi(2)
+            }
+            (shape1, shape2) => Shape::intersects(shape2, pos2, shape1, pos1),
+        }
     }
 }

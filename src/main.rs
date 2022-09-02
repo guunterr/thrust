@@ -13,7 +13,7 @@ use vector2d::Vector2D;
 use input_handler::Input;
 use physics::PhysicsManager;
 use rigidbody::RigidBody;
-use shape::{Circle, Rect};
+use shape::Shape;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
@@ -37,17 +37,19 @@ fn main() -> Result<(), String> {
     physics_manager.add_body(RigidBody::new(
         Vector2D::new(300.0, 300.0),
         1.0,
-        Box::new(Rect::new(
-            Vector2D::new(-25.0, -25.0),
-            50.0,
-            50.0,
-            Color::RGB(0, 255, 0),
-        )),
+        Shape::Rect {
+            w: 50.0,
+            h: 50.0,
+            color: Color::RGB(0, 255, 0),
+        },
     ));
     physics_manager.add_body(RigidBody::new(
         Vector2D::new(100.0, 100.0),
         1.0,
-        Box::new(Circle::new(Vector2D::new(0.0, 0.0), 50.0, Color::BLUE)),
+        Shape::Circle {
+            r: 50.0,
+            color: Color::BLUE,
+        },
     ));
 
     let mut event_pump = sdl.event_pump()?;
