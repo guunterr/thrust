@@ -3,6 +3,7 @@ use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
+use crate::rigidbody::CollisionData;
 
 #[derive(Debug, PartialEq)]
 pub enum Shape {
@@ -63,9 +64,9 @@ impl Shape {
         pos2: &Vector2D<f64>,
     ) -> bool {
         match (shape1, shape2) {
-            (Shape::Rect { w: w1, h: h1, .. }, Shape::Rect { w: w2, h: h2 ,..}) => {
+            (Shape::Rect { w: w1, h: h1, .. }, Shape::Rect { w: w2, h: h2, .. }) => {
                 let diff = pos1 - pos2;
-                diff.x.abs() <= (w1 + w2)/2.0 && diff.y.abs() <= (h1 + h2)/2.0
+                diff.x.abs() <= (w1 + w2) / 2.0 && diff.y.abs() <= (h1 + h2) / 2.0
             }
             (Shape::Rect { w, h, .. }, Shape::Circle { r, .. }) => {
                 let close_x = pos2.x.max(pos1.x - w / 2.0).min(pos1.x + w / 2.0);
@@ -86,31 +87,61 @@ impl Shape {
         pos1: &Vector2D<f64>,
         shape2: &Shape,
         pos2: &Vector2D<f64>,
-    ) -> (Vector2D<f64>, f64) {
+    ) -> CollisionData {
         match (shape1, shape2) {
-            (Shape::Rect { w: w1, h: h1, .. }, Shape::Rect { w: w2, h: h2,.. }) => {
-                let displacement_vector = pos1 - pos2;
-                let depth_vector = displacement_vector - Vector2D::new(w1+w2, h1+h2);
-                if depth_vector.x > depth_vector.y {
-                    (displacement_vector.horizontal(), 0.0)
+            (Shape::Rect { w: w1, h: h1, .. }, Shape::Rect { w: w2, h: h2, .. }) => {
+                let lower_corner_x = f64::max(pos1.x - w1 / 2.0, pos2.x - w2 / 2.0);
+                let lower_corner_y = f64::max(pos1.y - h1 / 2.0, pos2.y - h2 / 2.0);
+                let upper_corner_x = f64::min(pos1.x + w1 / 2.0, pos2.x + w2 / 2.0);
+                let upper_corner_y = f64::min(pos1.y + h1 / 2.0, pos2.y + h2 / 2.0);
+                let collision_point = Vector2D::new(
+                    (lower_corner_x + upper_corner_x) / 2.0,
+                    (lower_corner_y + upper_corner_y) / 2.0,
+                );
+                if upper_corner_x-lower_corner_x > upper_corner_y-lower_corner_y {
+                    CollisionData {
+                        collision_point,
+                        normal_vector: Vector2D::new(0.0, if pos1.y<pos2.y {1.0} else {-1.0}),
+                        depth: upper_corner_x-lower_corner_x,
+                    }
                 } else {
-                    (displacement_vector.vertical(), 0.0)
+                    CollisionData {
+                        collision_point,
+                        normal_vector: Vector2D::new(if pos1.y<pos2.y {1.0} else {-1.0}, 0.0),
+                        depth: upper_corner_y-lower_corner_y,
+                    }
                 }
             }
             (Shape::Rect { w, h, .. }, Shape::Circle { r, .. }) => {
+                //FIXME This entire function is some major whack
                 let close_x = pos2.x.max(pos1.x - w / 2.0).min(pos1.x + w / 2.0);
                 let close_y = pos2.y.max(pos1.y - h / 2.0).min(pos1.y + h / 2.0);
                 let close = &Vector2D::new(close_x, close_y);
-                let dist = (pos2 - close).length_squared();
-                ((pos2 - close).normalise(), dist - r)
+                let dist = (pos2 - close).length();
+                CollisionData {
+                    collision_point: (close + pos2) / 2.0, //FIXME https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
+                    normal_vector: if close == pos2 {
+                        (pos2 - pos1).normalise()
+                    } else {
+                        (pos2 - close).normalise()
+                    },
+                    depth: dist - r,
+                }
             }
             (Shape::Circle { r: r1, .. }, Shape::Circle { r: r2, .. }) => {
                 let diff = pos2 - pos1;
-                (diff.normalise(), diff.length() - (r1 + r2))
+                let overlap = diff.length() - (r1 + r2);
+                let norm = diff.normalise();
+                CollisionData {
+                    collision_point: pos1 + &(norm * (overlap / 2.0 + r1)),
+                    normal_vector: norm,
+                    depth: overlap,
+                }
             }
             (shape1, shape2) => {
-                let (normal_vector, depth) = Shape::collision_data(shape2, pos2, shape1, pos1);
-                (normal_vector * -1.0, depth)
+                let mut collision_data = Shape::collision_data(shape2, pos2, shape1, pos1);
+                collision_data.normal_vector *= -1.0;
+                collision_data
             }
         }
     }
