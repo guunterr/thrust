@@ -14,6 +14,12 @@ pub struct PhysicsManager {
     selected_offset: Option<Vector2D<f64>>,
 }
 
+impl Default for PhysicsManager{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PhysicsManager {
     pub fn new() -> PhysicsManager {
         PhysicsManager {
@@ -67,8 +73,7 @@ impl PhysicsManager {
                 .bodies
                 .iter_mut()
                 .enumerate()
-                .filter(|(_, body)| body.point_inside(&m))
-                .next()
+                .find(|(_, body)| body.point_inside(&m))
                 .map(|element| element.0);
 
             if let Some(i) = self.selected_index {

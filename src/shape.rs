@@ -42,7 +42,7 @@ impl Shape {
     }
 
     pub fn point_inside(&self, offset: &Vector2D<f64>, point: &Vector2D<f64>) -> bool {
-        return match self {
+        match self {
             Shape::Rect { w, h, .. } => {
                 let &Vector2D { x, y } = offset;
                 point.x > x - w / 2.0
@@ -54,7 +54,7 @@ impl Shape {
                 let dist = (offset - point).length_squared();
                 dist < r.powi(2)
             }
-        };
+        }
     }
 
     pub fn intersects(
@@ -154,7 +154,7 @@ mod tests {
 
     use super::Shape::{self, Circle, Rect};
     #[test]
-    fn rectangle_intersection_test() {
+    fn test_rectangle_intersection() {
         let shape1 = &Rect {
             w: 20.0,
             h: 30.0,
@@ -203,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn circle_intersection_test() {
+    fn test_circle_intersection() {
         let shape1 = &Circle {
             r: 30.0,
             color: Color::RGB(255, 255, 255),
@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn rectangle_circle_intersection_test() {
+    fn test_rectangle_circle_intersection() {
         let shape1 = &Rect {
             w: 30.0,
             h: 50.0,
@@ -283,4 +283,15 @@ mod tests {
             pos2
         );
     }
+
+    #[test]
+    fn test_rectangle_collision_data(){
+        let shape1 = & Rect { w: 50.0, h: 30.0, color: Color::RGB(255, 0, 255) };
+        let shape2 = & Rect { w: 40.0, h: 60.0, color: Color::RGB(0, 255, 255) };
+
+    }   
+
+
+
+
 }
