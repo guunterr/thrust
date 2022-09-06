@@ -109,11 +109,15 @@ impl PhysicsManager {
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
                 Rect {
-                    w: rng.gen_range(10.0..50.0),
-                    h: rng.gen_range(10.0..50.0),
-                    color: Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255)),
+                    w: rng.gen_range(20.0..60.0),
+                    h: rng.gen_range(20.0..60.0),
+                    color: Color::RGB(
+                        rng.gen_range(0..=255),
+                        rng.gen_range(0..=255),
+                        rng.gen_range(0..=255),
+                    ),
                 },
-                rng.gen_range(0.5..0.95),
+                rng.gen_range(0.75..0.95),
             ))
         }
 
@@ -122,10 +126,14 @@ impl PhysicsManager {
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
                 Circle {
-                    r: rng.gen_range(10.0..50.0),
-                    color: Color::RGB(rng.gen_range(0..=255), rng.gen_range(0..=255), rng.gen_range(0..=255)),
+                    r: rng.gen_range(10.0..35.0),
+                    color: Color::RGB(
+                        rng.gen_range(0..=255),
+                        rng.gen_range(0..=255),
+                        rng.gen_range(0..=255),
+                    ),
                 },
-                rng.gen_range(0.5..0.95),
+                rng.gen_range(0.75..0.95),
             ))
         }
     }

@@ -1,9 +1,9 @@
+use crate::rigidbody::CollisionData;
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
-use crate::rigidbody::CollisionData;
 
 #[derive(Debug, PartialEq)]
 pub enum Shape {
@@ -98,17 +98,17 @@ impl Shape {
                     (lower_corner_x + upper_corner_x) / 2.0,
                     (lower_corner_y + upper_corner_y) / 2.0,
                 );
-                if upper_corner_x-lower_corner_x > upper_corner_y-lower_corner_y {
+                if upper_corner_x - lower_corner_x > upper_corner_y - lower_corner_y {
                     CollisionData {
                         collision_point,
-                        normal_vector: Vector2D::new(0.0, if pos1.y<pos2.y {1.0} else {-1.0}),
-                        depth: upper_corner_x-lower_corner_x,
+                        normal_vector: Vector2D::new(0.0, if pos1.y < pos2.y { 1.0 } else { -1.0 }),
+                        depth: upper_corner_x - lower_corner_x,
                     }
                 } else {
                     CollisionData {
                         collision_point,
-                        normal_vector: Vector2D::new(if pos1.y<pos2.y {1.0} else {-1.0}, 0.0),
-                        depth: upper_corner_y-lower_corner_y,
+                        normal_vector: Vector2D::new(if pos1.y < pos2.y { 1.0 } else { -1.0 }, 0.0),
+                        depth: upper_corner_y - lower_corner_y,
                     }
                 }
             }
@@ -144,5 +144,143 @@ impl Shape {
                 collision_data
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sdl2::pixels::Color;
+    use vector2d::Vector2D;
+
+    use super::Shape::{self, Circle, Rect};
+    #[test]
+    fn rectangle_intersection_test() {
+        let shape1 = &Rect {
+            w: 20.0,
+            h: 30.0,
+            color: Color::RGB(255, 255, 255),
+        };
+        let shape2 = &Rect {
+            w: 50.0,
+            h: 10.0,
+            color: Color::RGB(255, 0, 255),
+        };
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(130.0, 110.0);
+
+        assert!(
+            Shape::intersects(shape1, pos1, shape2, pos2),
+            "Test Failed! {:?} at {:?} should intersect {:?} at {:?}",
+            shape1,
+            pos1,
+            shape2,
+            pos2
+        );
+
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(135.0, 115.0);
+
+        assert!(
+            Shape::intersects(shape1, pos1, shape2, pos2),
+            "Test Failed! {:?} at {:?} should intersect {:?} at {:?}",
+            shape1,
+            pos1,
+            shape2,
+            pos2
+        );
+
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(150.0, 130.0);
+
+        assert!(
+            !Shape::intersects(shape1, pos1, shape2, pos2),
+            "Test Failed! {:?} at {:?} should not intersect {:?} at {:?}",
+            shape1,
+            pos1,
+            shape2,
+            pos2
+        );
+    }
+
+    #[test]
+    fn circle_intersection_test() {
+        let shape1 = &Circle {
+            r: 30.0,
+            color: Color::RGB(255, 255, 255),
+        };
+        let shape2 = &Circle {
+            r: 20.0,
+            color: Color::RGB(255, 255, 255),
+        };
+
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(130.0, 100.0);
+
+        assert!(
+            Shape::intersects(shape1, pos1, shape2, pos2),
+            "Test Failed! {:?} at {:?} should intersect {:?} at {:?}",
+            shape1,
+            pos1,
+            shape2,
+            pos2
+        );
+
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(130.0, 140.0);
+
+        assert!(
+            Shape::intersects(shape1, pos1, shape2, pos2),
+            "Test Failed! {:?} at {:?} should intersect {:?} at {:?}",
+            shape1,
+            pos1,
+            shape2,
+            pos2
+        );
+
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(160.0, 100.0);
+
+        assert!(
+            !Shape::intersects(shape1, pos1, shape2, pos2),
+            "Test Failed! {:?} at {:?} should not intersect {:?} at {:?}",
+            shape1,
+            pos1,
+            shape2,
+            pos2
+        );
+    }
+
+    #[test]
+    fn rectangle_circle_intersection_test() {
+        let shape1 = &Rect {
+            w: 30.0,
+            h: 50.0,
+            color: Color::RGB(255, 255, 255),
+        };
+        let shape2 = &Circle {
+            r: 30.0,
+            color: Color::RGB(255, 0, 0),
+        };
+
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(140.0, 140.0);
+        assert!(
+            Shape::intersects(shape1, pos1, shape2, pos2),
+            "Test Failed! {:?} at {:?} should intersect {:?} at {:?}",
+            shape1,
+            pos1,
+            shape2,
+            pos2
+        );
+
+        let pos1 = &Vector2D::new(50.0, 600.0);
+        assert!(
+            !Shape::intersects(shape1, pos1, shape2, pos2),
+            "Test Failed! {:?} at {:?} should not intersect {:?} at {:?}",
+            shape1,
+            pos1,
+            shape2,
+            pos2
+        );
     }
 }
