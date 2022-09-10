@@ -14,7 +14,7 @@ pub struct PhysicsManager {
     selected_offset: Option<Vector2D<f64>>,
 }
 
-impl Default for PhysicsManager{
+impl Default for PhysicsManager {
     fn default() -> Self {
         Self::new()
     }
@@ -34,7 +34,12 @@ impl PhysicsManager {
 
     pub fn update(&mut self, input: &Input) {
         self.handle_user_input(input);
-        self.bodies.iter_mut().for_each(|body| body.integrate());
+        self.bodies.iter_mut().for_each(|body| {
+            if body.inv_mass != 0.0 {
+                body.add_acc(Vector2D::new(0.0, 0.5));
+            }
+            body.integrate()
+        });
 
         for i in 0..self.bodies.len() {
             for j in i + 1..self.bodies.len() {
@@ -43,7 +48,22 @@ impl PhysicsManager {
                 if !self.bodies[i].intersects(&self.bodies[j]) {
                     continue;
                 }
+
+                let body_i_inv_mass = self.bodies[i].inv_mass;
+                let body_j_inv_mass = self.bodies[j].inv_mass;
+
+                if body_i_inv_mass == 0.0 && body_j_inv_mass == 0.0 {
+                    continue;
+                }
                 let collision_data = self.bodies[i].collision_data(&self.bodies[j]).unwrap();
+
+                let percent = 0.8;
+                let correction = collision_data.normal_vector * collision_data.depth
+                    / (body_i_inv_mass + body_j_inv_mass)
+                    * percent;
+                self.bodies[i].pos -= correction * body_i_inv_mass;
+                self.bodies[j].pos += correction * body_j_inv_mass;
+
                 // println!("\n");
                 // println!("{:?}", collision_data);
                 let rv = self.bodies[j].vel - self.bodies[i].vel;
@@ -58,15 +78,8 @@ impl PhysicsManager {
                 impulse /= 1.0 * self.bodies[i].inv_mass + 1.0 * self.bodies[j].inv_mass;
 
                 let impulse = collision_data.normal_vector * impulse;
-                let body_i_inv_mass = self.bodies[i].inv_mass;
-                let body_j_inv_mass = self.bodies[j].inv_mass;
                 self.bodies[i].vel -= impulse * body_i_inv_mass;
                 self.bodies[j].vel += impulse * body_j_inv_mass;
-
-                let percent = 0.8;
-                let correction = collision_data.normal_vector * collision_data.depth / (body_i_inv_mass + body_j_inv_mass) * percent;
-                self.bodies[i].pos -= correction * body_i_inv_mass;
-                self.bodies[j].pos += correction * body_j_inv_mass;
             }
         }
     }
@@ -117,40 +130,40 @@ impl PhysicsManager {
         let mut rng = rand::thread_rng();
 
         if input.is_key_pressed(&Keycode::Z) {
-            self.bodies.push(RigidBody::new(
+            self.add_debug_rect(
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
-                Rect {
-                    w: rng.gen_range(20.0..60.0),
-                    h: rng.gen_range(20.0..60.0),
-                    color: Color::RGB(
-                        rng.gen_range(0..=255),
-                        rng.gen_range(0..=255),
-                        rng.gen_range(0..=255),
-                    ),
-                },
-                rng.gen_range(0.75..0.95),
-            ))
+                rng.gen_range(40.0..50.0),
+                rng.gen_range(40.0..50.0),
+            );
         }
 
         if input.is_key_pressed(&Keycode::X) {
-            self.bodies.push(RigidBody::new(
+            self.add_debug_circle(
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
-                Circle {
-                    r: rng.gen_range(20.0..25.0),
-                    color: Color::RGB(
-                        rng.gen_range(0..=255),
-                        rng.gen_range(0..=255),
-                        rng.gen_range(0..=255),
-                    ),
-                },
-                rng.gen_range(0.75..0.95),
-            ))
+                rng.gen_range(40.0..50.0),
+            );
         }
 
-        if input.is_key_pressed(&Keycode::C){
+        if input.is_key_pressed(&Keycode::C) {
             self.bodies.clear();
+        }
+
+        if input.is_key_pressed(&Keycode::M) {
+            self.add_debug_circle(
+                input.mouse_position().as_f64s(),
+                0.0,
+                rng.gen_range(40.0..80.0),
+            )
+        }
+        if input.is_key_pressed(&Keycode::N) {
+            self.add_debug_rect(
+                input.mouse_position().as_f64s(),
+                0.0,
+                rng.gen_range(40.0..80.0),
+                rng.gen_range(40.0..80.0),
+            )
         }
     }
 
@@ -181,5 +194,48 @@ impl PhysicsManager {
             })
             .map(|(b1, b2)| b1.collision_data(b2))
             .for_each(|manifold| manifold.unwrap().display(canvas));
+    }
+
+    pub fn add_debug_circle(&mut self, pos: Vector2D<f64>, mass: f64, r: f64) {
+        let mut rng = rand::thread_rng();
+        self.bodies.push(RigidBody::new(
+            pos,
+            mass,
+            Circle {
+                r,
+                color: if mass == 0.0 {
+                    Color::RGB(255, 255, 255)
+                } else {
+                    Color::RGB(
+                        rng.gen_range(0..=255),
+                        rng.gen_range(0..=255),
+                        rng.gen_range(0..=255),
+                    )
+                },
+            },
+            rng.gen_range(0.85..0.95),
+        ));
+    }
+
+    pub fn add_debug_rect(&mut self, pos: Vector2D<f64>, mass: f64, w: f64, h: f64) {
+        let mut rng = rand::thread_rng();
+        self.bodies.push(RigidBody::new(
+            pos,
+            mass,
+            Rect {
+                w,
+                h,
+                color: if mass == 0.0 {
+                    Color::RGB(255, 255, 255)
+                } else {
+                    Color::RGB(
+                        rng.gen_range(0..=255),
+                        rng.gen_range(0..=255),
+                        rng.gen_range(0..=255),
+                    )
+                },
+            },
+            rng.gen_range(0.85..0.95),
+        ));
     }
 }

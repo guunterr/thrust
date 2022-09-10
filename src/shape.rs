@@ -128,7 +128,7 @@ impl Shape {
                     } else {
                         (pos2 - close).normalise()
                     },
-                    depth: dist - r,
+                    depth: r - dist,
                 })
             }
             (Shape::Circle { r: r1, .. }, Shape::Circle { r: r2, .. }) => {

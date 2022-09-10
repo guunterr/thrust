@@ -4,10 +4,13 @@ pub mod physics;
 pub mod rigidbody;
 pub mod shape;
 
+use rigidbody::RigidBody;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
+use shape::Shape;
 use std::time::Duration;
+use vector2d::Vector2D;
 
 use input_handler::Input;
 use physics::PhysicsManager;
@@ -41,35 +44,48 @@ fn main() -> Result<(), String> {
     //     },
     //     0.4,
     // ));
-    // physics_manager.add_body(RigidBody::new(
-    //     Vector2D::new(100.0, 100.0),
-    //     1.0,
-    //     Shape::Circle {
-    //         r: 50.0,
-    //         color: Color::BLUE,
-    //     },
-    //     0.5,
+    physics_manager.add_body(RigidBody::new(
+        Vector2D::new(400.0, 600.0),
+        0.0,
+        Shape::Rect {
+            w: 800.0,
+            h: 50.0,
+            color: Color::WHITE,
+        },
+        0.9,
+    ));
+    physics_manager.add_body(RigidBody::new(
+        Vector2D::new(400.0, 0.0),
+        0.0,
+        Shape::Rect {
+            w: 800.0,
+            h: 50.0,
+            color: Color::WHITE,
+        },
+        0.9,
+    ));
 
-    // ));
-    // physics_manager.add_body(RigidBody::new(
-    //     Vector2D::new(200.0, 200.0),
-    //     1.0,
-    //     Shape::Rect {
-    //         w: 50.0,
-    //         h: 50.0,
-    //         color: Color::RGB(0, 255, 0),
-    //     },
-    //     0.6,
-    // ));
-    // physics_manager.add_body(RigidBody::new(
-    //     Vector2D::new(400.0, 400.0),
-    //     1.0,
-    //     Shape::Circle {
-    //         r: 50.0,
-    //         color: Color::BLUE,
-    //     },
-    //     0.7,
-    // ));
+    physics_manager.add_body(RigidBody::new(
+        Vector2D::new(0.0, 300.0),
+        0.0,
+        Shape::Rect {
+            w: 50.0,
+            h: 600.0,
+            color: Color::WHITE,
+        },
+        0.9,
+    ));
+
+    physics_manager.add_body(RigidBody::new(
+        Vector2D::new(800.0, 300.0),
+        0.0,
+        Shape::Rect {
+            w: 50.0,
+            h: 600.0,
+            color: Color::WHITE,
+        },
+        0.9,
+    ));
 
     let mut event_pump = sdl.event_pump()?;
     'running: loop {

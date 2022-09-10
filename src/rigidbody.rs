@@ -1,5 +1,4 @@
 use crate::shape::Shape;
-use crate::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
@@ -74,23 +73,6 @@ impl RigidBody {
         self.pos += self.vel;
         self.vel += self.acc;
         self.acc = Vector2D::new(0.0, 0.0);
-
-        if self.pos.x < 0.0 {
-            self.pos.x = 0.0;
-            self.vel.x = self.vel.x.abs();
-        }
-        if self.pos.x > SCREEN_WIDTH as f64 {
-            self.pos.x = SCREEN_WIDTH as f64;
-            self.vel.x = -self.vel.x.abs();
-        }
-        if self.pos.y < 0.0 {
-            self.pos.y = 0.0;
-            self.vel.y = self.vel.y.abs();
-        }
-        if self.pos.y > SCREEN_HEIGHT as f64 {
-            self.pos.y = SCREEN_HEIGHT as f64;
-            self.vel.y = -self.vel.y.abs();
-        }
     }
 
     pub fn display(&self, canvas: &Canvas<Window>) {
