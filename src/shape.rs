@@ -87,7 +87,10 @@ impl Shape {
         pos1: &Vector2D<f64>,
         shape2: &Shape,
         pos2: &Vector2D<f64>,
-    ) -> CollisionData {
+    ) -> Option<CollisionData> {
+        if !Shape::intersects(shape1, pos1, shape2, pos2) {
+            return None;
+        }
         match (shape1, shape2) {
             (Shape::Rect { w: w1, h: h1, .. }, Shape::Rect { w: w2, h: h2, .. }) => {
                 let lower_corner_x = f64::max(pos1.x - w1 / 2.0, pos2.x - w2 / 2.0);
@@ -98,18 +101,18 @@ impl Shape {
                     (lower_corner_x + upper_corner_x) / 2.0,
                     (lower_corner_y + upper_corner_y) / 2.0,
                 );
-                if upper_corner_x - lower_corner_x > upper_corner_y - lower_corner_y {
-                    CollisionData {
+                if upper_corner_x - lower_corner_x >  upper_corner_y - lower_corner_y {
+                    Some(CollisionData {
                         collision_point,
                         normal_vector: Vector2D::new(0.0, if pos1.y < pos2.y { 1.0 } else { -1.0 }),
-                        depth: upper_corner_x - lower_corner_x,
-                    }
-                } else {
-                    CollisionData {
-                        collision_point,
-                        normal_vector: Vector2D::new(if pos1.y < pos2.y { 1.0 } else { -1.0 }, 0.0),
                         depth: upper_corner_y - lower_corner_y,
-                    }
+                    })
+                } else {
+                    Some(CollisionData {
+                        collision_point,
+                        normal_vector: Vector2D::new(if pos1.x < pos2.x { 1.0 } else { -1.0 }, 0.0),
+                        depth: upper_corner_x - lower_corner_x,
+                    })
                 }
             }
             (Shape::Rect { w, h, .. }, Shape::Circle { r, .. }) => {
@@ -118,7 +121,7 @@ impl Shape {
                 let close_y = pos2.y.max(pos1.y - h / 2.0).min(pos1.y + h / 2.0);
                 let close = &Vector2D::new(close_x, close_y);
                 let dist = (pos2 - close).length();
-                CollisionData {
+                Some(CollisionData {
                     collision_point: (close + pos2) / 2.0, //FIXME https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
                     normal_vector: if close == pos2 {
                         (pos2 - pos1).normalise()
@@ -126,23 +129,25 @@ impl Shape {
                         (pos2 - close).normalise()
                     },
                     depth: dist - r,
-                }
+                })
             }
             (Shape::Circle { r: r1, .. }, Shape::Circle { r: r2, .. }) => {
                 let diff = pos2 - pos1;
                 let overlap = diff.length() - (r1 + r2);
                 let norm = diff.normalise();
-                CollisionData {
+                Some(CollisionData {
                     collision_point: pos1 + &(norm * (overlap / 2.0 + r1)),
                     normal_vector: norm,
                     depth: overlap,
+                })
+            }
+            (shape1, shape2) => match Shape::collision_data(shape2, pos2, shape1, pos1) {
+                Some(mut collision_data) => {
+                    collision_data.normal_vector *= -1.0;
+                    Some(collision_data)
                 }
-            }
-            (shape1, shape2) => {
-                let mut collision_data = Shape::collision_data(shape2, pos2, shape1, pos1);
-                collision_data.normal_vector *= -1.0;
-                collision_data
-            }
+                None => None,
+            },
         }
     }
 }
@@ -285,13 +290,32 @@ mod tests {
     }
 
     #[test]
-    fn test_rectangle_collision_data(){
-        let shape1 = & Rect { w: 50.0, h: 30.0, color: Color::RGB(255, 0, 255) };
-        let shape2 = & Rect { w: 40.0, h: 60.0, color: Color::RGB(0, 255, 255) };
+    fn test_rectangle_rectangle_collision_data() {
+        let shape1 = &Rect {
+            w: 50.0,
+            h: 40.0,
+            color: Color::RGB(255, 0, 255),
+        };
+        let shape2 = &Rect {
+            w: 40.0,
+            h: 60.0,
+            color: Color::RGB(0, 255, 255),
+        };
 
-    }   
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(170.0, 100.0);
 
+        let collision_data = Shape::collision_data(shape1, pos1, shape2, pos2);
+        assert!(collision_data.is_none());
 
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(100.0, 140.0);
 
-
+        let collision_data = Shape::collision_data(shape1, pos1, shape2, pos2);
+        assert!(collision_data.is_some());
+        let collision_data = collision_data.unwrap();
+        assert_eq!(collision_data.collision_point, Vector2D::new(100.0, 115.0));
+        assert_eq!(collision_data.depth, 10.0);
+        assert_eq!(collision_data.normal_vector, Vector2D::new(0.0, 1.0));
+    }
 }

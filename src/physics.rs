@@ -38,16 +38,18 @@ impl PhysicsManager {
 
         for i in 0..self.bodies.len() {
             for j in i + 1..self.bodies.len() {
+                //TODO: Take the condom off and go in unsafe (i != j, but rust doesn't doesnt know that)
+                //In other words, improve pullout game
                 if !self.bodies[i].intersects(&self.bodies[j]) {
                     continue;
                 }
-                let collision_data = self.bodies[i].collision_data(&self.bodies[j]);
-                println!("\n");
-                println!("{:?}", collision_data);
+                let collision_data = self.bodies[i].collision_data(&self.bodies[j]).unwrap();
+                // println!("\n");
+                // println!("{:?}", collision_data);
                 let rv = self.bodies[j].vel - self.bodies[i].vel;
-                println!("rv: {:?}", rv);
+                // println!("rv: {:?}", rv);
                 let vel_along_normal = Vector2D::dot(collision_data.normal_vector, rv);
-                println!("vel_along_normal: {:?}", vel_along_normal);
+                // println!("vel_along_normal: {:?}", vel_along_normal);
                 if vel_along_normal > 0.0 {
                     continue;
                 }
@@ -60,6 +62,8 @@ impl PhysicsManager {
                 let body_j_mass = self.bodies[j].mass;
                 self.bodies[i].vel -= impulse * (1.0 / body_i_mass);
                 self.bodies[j].vel += impulse * (1.0 / body_j_mass);
+
+                
             }
         }
     }
@@ -131,7 +135,7 @@ impl PhysicsManager {
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
                 Circle {
-                    r: rng.gen_range(10.0..35.0),
+                    r: rng.gen_range(4.0..5.0),
                     color: Color::RGB(
                         rng.gen_range(0..=255),
                         rng.gen_range(0..=255),
@@ -169,6 +173,6 @@ impl PhysicsManager {
                     .filter(|(b1, b2)| b1.intersects(b2))
             })
             .map(|(b1, b2)| b1.collision_data(b2))
-            .for_each(|manifold| manifold.display(canvas));
+            .for_each(|manifold| manifold.unwrap().display(canvas));
     }
 }

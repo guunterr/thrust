@@ -101,7 +101,7 @@ impl RigidBody {
         Shape::intersects(&self.shape, &self.pos, &other.shape, &other.pos)
     }
 
-    pub fn collision_data(&self, other: &RigidBody) -> CollisionData {
+    pub fn collision_data(&self, other: &RigidBody) -> Option<CollisionData> {
         Shape::collision_data(&self.shape, &self.pos, &other.shape, &other.pos)
     }
 
