@@ -133,7 +133,7 @@ impl Shape {
             }
             (Shape::Circle { r: r1, .. }, Shape::Circle { r: r2, .. }) => {
                 let diff = pos2 - pos1;
-                let overlap = diff.length() - (r1 + r2);
+                let overlap = (r1 + r2) - diff.length();
                 let norm = diff.normalise();
                 Some(CollisionData {
                     collision_point: pos1 + &(norm * (overlap / 2.0 + r1)),

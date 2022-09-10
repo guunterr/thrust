@@ -55,15 +55,18 @@ impl PhysicsManager {
                 }
                 let e = self.bodies[i].restitution.min(self.bodies[j].restitution);
                 let mut impulse = -(1.0 + e) * vel_along_normal;
-                impulse /= 1.0 / self.bodies[i].mass + 1.0 / self.bodies[j].mass;
+                impulse /= 1.0 * self.bodies[i].inv_mass + 1.0 * self.bodies[j].inv_mass;
 
                 let impulse = collision_data.normal_vector * impulse;
-                let body_i_mass = self.bodies[i].mass;
-                let body_j_mass = self.bodies[j].mass;
-                self.bodies[i].vel -= impulse * (1.0 / body_i_mass);
-                self.bodies[j].vel += impulse * (1.0 / body_j_mass);
+                let body_i_inv_mass = self.bodies[i].inv_mass;
+                let body_j_inv_mass = self.bodies[j].inv_mass;
+                self.bodies[i].vel -= impulse * body_i_inv_mass;
+                self.bodies[j].vel += impulse * body_j_inv_mass;
 
-                
+                let percent = 0.8;
+                let correction = collision_data.normal_vector * collision_data.depth / (body_i_inv_mass + body_j_inv_mass) * percent;
+                self.bodies[i].pos -= correction * body_i_inv_mass;
+                self.bodies[j].pos += correction * body_j_inv_mass;
             }
         }
     }
@@ -135,7 +138,7 @@ impl PhysicsManager {
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
                 Circle {
-                    r: rng.gen_range(4.0..5.0),
+                    r: rng.gen_range(20.0..25.0),
                     color: Color::RGB(
                         rng.gen_range(0..=255),
                         rng.gen_range(0..=255),
@@ -144,6 +147,10 @@ impl PhysicsManager {
                 },
                 rng.gen_range(0.75..0.95),
             ))
+        }
+
+        if input.is_key_pressed(&Keycode::C){
+            self.bodies.clear();
         }
     }
 

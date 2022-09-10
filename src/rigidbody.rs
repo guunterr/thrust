@@ -45,7 +45,7 @@ pub struct RigidBody {
     pub pos: Vector2D<f64>,
     pub vel: Vector2D<f64>,
     acc: Vector2D<f64>,
-    pub mass: f64,
+    pub inv_mass: f64,
     shape: Shape,
     pub restitution: f64,
 }
@@ -55,7 +55,7 @@ impl RigidBody {
             pos,
             vel: Vector2D::new(0.0, 0.0),
             acc: Vector2D::new(0.0, 0.0),
-            mass,
+            inv_mass: if mass == 0.0 { 0.0 } else {1.0 / mass},
             shape,
             restitution,
         }
@@ -67,7 +67,7 @@ impl RigidBody {
         self.acc = acc;
     }
     pub fn add_force(&mut self, force: Vector2D<f64>) {
-        self.acc += force / self.mass;
+        self.acc += force * self.inv_mass;
     }
 
     pub fn integrate(&mut self) {
