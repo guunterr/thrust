@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use crate::input_handler::Input;
 use crate::rigidbody::RigidBody;
 use crate::shape::Shape::{Circle, Rect};
@@ -9,7 +11,7 @@ use sdl2::video::Window;
 use vector2d::Vector2D;
 
 pub struct PhysicsManager {
-    bodies: Vec<RigidBody>,
+    bodies: Vec<RefCell<RigidBody>>,
     selected_index: Option<usize>,
     selected_offset: Option<Vector2D<f64>>,
 }
@@ -29,57 +31,62 @@ impl PhysicsManager {
         }
     }
     pub fn add_body(&mut self, body: RigidBody) {
-        self.bodies.push(body);
+        self.bodies.push(RefCell::new(body));
     }
 
     pub fn update(&mut self, input: &Input) {
         self.handle_user_input(input);
         self.bodies.iter_mut().for_each(|body| {
+            let mut body = body.borrow_mut();
             if body.inv_mass != 0.0 {
                 body.add_acc(Vector2D::new(0.0, 0.5));
             }
-            body.integrate()
+            body.integrate(1.0);
         });
 
         for i in 0..self.bodies.len() {
             for j in i + 1..self.bodies.len() {
-                //TODO: Take the condom off and go in unsafe (i != j, but rust doesn't doesnt know that)
-                //In other words, improve pullout game
-                if !self.bodies[i].intersects(&self.bodies[j]) {
+                //body i and body j should not be the same so this should never panic
+                let mut body_i = self
+                    .bodies
+                    .get(i)
+                    .expect("ith element should exist")
+                    .borrow_mut();
+                let mut body_j = self
+                    .bodies
+                    .get(j)
+                    .expect("jth object should exist")
+                    .borrow_mut();
+
+                let body_i_inv_mass = body_i.inv_mass;
+                let body_j_inv_mass = body_j.inv_mass;
+
+                if !body_i.intersects(&body_j) || (body_i_inv_mass == 0.0 && body_j_inv_mass == 0.0)
+                {
                     continue;
                 }
 
-                let body_i_inv_mass = self.bodies[i].inv_mass;
-                let body_j_inv_mass = self.bodies[j].inv_mass;
-
-                if body_i_inv_mass == 0.0 && body_j_inv_mass == 0.0 {
-                    continue;
-                }
-                let collision_data = self.bodies[i].collision_data(&self.bodies[j]).unwrap();
+                let manifold = body_i.manifold(&body_j).unwrap();
 
                 let percent = 0.8;
-                let correction = collision_data.normal_vector * collision_data.depth
-                    / (body_i_inv_mass + body_j_inv_mass)
+                let correction = manifold.normal_vector * manifold.depth
+                    / (body_i.inv_mass + body_j.inv_mass)
                     * percent;
-                self.bodies[i].pos -= correction * body_i_inv_mass;
-                self.bodies[j].pos += correction * body_j_inv_mass;
+                body_i.pos -= correction * body_i_inv_mass;
+                body_j.pos += correction * body_j_inv_mass;
 
-                // println!("\n");
-                // println!("{:?}", collision_data);
-                let rv = self.bodies[j].vel - self.bodies[i].vel;
-                // println!("rv: {:?}", rv);
-                let vel_along_normal = Vector2D::dot(collision_data.normal_vector, rv);
-                // println!("vel_along_normal: {:?}", vel_along_normal);
+                let rv = body_j.vel - body_i.vel;
+                let vel_along_normal = Vector2D::dot(manifold.normal_vector, rv);
                 if vel_along_normal > 0.0 {
                     continue;
                 }
-                let e = self.bodies[i].restitution.min(self.bodies[j].restitution);
+                let e = body_i.restitution.min(body_j.restitution);
                 let mut impulse = -(1.0 + e) * vel_along_normal;
-                impulse /= 1.0 * self.bodies[i].inv_mass + 1.0 * self.bodies[j].inv_mass;
+                impulse /= 1.0 * body_i.inv_mass + 1.0 * body_j.inv_mass;
 
-                let impulse = collision_data.normal_vector * impulse;
-                self.bodies[i].vel -= impulse * body_i_inv_mass;
-                self.bodies[j].vel += impulse * body_j_inv_mass;
+                let impulse = manifold.normal_vector * impulse;
+                body_i.vel -= impulse * body_i_inv_mass;
+                body_j.vel += impulse * body_j_inv_mass;
             }
         }
     }
@@ -93,30 +100,30 @@ impl PhysicsManager {
                 .bodies
                 .iter_mut()
                 .enumerate()
-                .find(|(_, body)| body.point_inside(&m))
+                .find(|(_, body)| body.borrow().point_inside(&m))
                 .map(|element| element.0);
 
             if let Some(i) = self.selected_index {
-                self.selected_offset = Some(m - self.bodies[i].pos)
+                self.selected_offset = Some(m - self.bodies[i].borrow().pos)
             }
         }
 
         if input.is_mouse_down(&MouseButton::Left) {
             if let (Some(i), Some(offset)) = (self.selected_index, self.selected_offset) {
-                self.bodies[i].pos = input.mouse_position().as_f64s() - offset;
+                self.bodies[i].borrow_mut().pos = input.mouse_position().as_f64s() - offset;
             }
         }
 
         if input.is_mouse_released(&MouseButton::Left) {
             if let Some(i) = self.selected_index {
-                self.bodies[i].set_vel(Vector2D::new(0.0, 0.0));
+                self.bodies[i].borrow_mut().set_vel(Vector2D::new(0.0, 0.0));
             }
         }
 
         if input.is_mouse_released(&MouseButton::Right) {
             if let (Some(i), Some(offset)) = (self.selected_index, self.selected_offset) {
-                let diff = self.bodies[i].pos + offset - input.mouse_position().as_f64s();
-                self.bodies[i].set_vel(diff / 10.0);
+                let diff = self.bodies[i].borrow().pos + offset - input.mouse_position().as_f64s();
+                self.bodies[i].borrow_mut().set_vel(diff / 10.0);
             }
         }
 
@@ -142,7 +149,7 @@ impl PhysicsManager {
             self.add_debug_circle(
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
-                rng.gen_range(40.0..50.0),
+                rng.gen_range(20.0..25.0),
             );
         }
 
@@ -168,13 +175,15 @@ impl PhysicsManager {
     }
 
     pub fn display(&self, canvas: &mut Canvas<Window>, input: &Input) {
-        self.bodies.iter().for_each(|body| body.display(canvas));
+        self.bodies
+            .iter()
+            .for_each(|body| body.borrow().display(canvas));
 
         use sdl2::mouse::MouseButton;
         if input.is_mouse_down(&MouseButton::Right) {
             if let (Some(i), Some(offset)) = (self.selected_index, self.selected_offset) {
                 let start = input.mouse_position();
-                let end = (self.bodies[i].pos + offset).as_i32s();
+                let end = (self.bodies[i].borrow().pos + offset).as_i32s();
                 canvas.set_draw_color(Color::RGB(255, 0, 0));
                 canvas
                     .draw_line((start.x, start.y), (end.x, end.y))
@@ -190,15 +199,15 @@ impl PhysicsManager {
                     .iter()
                     .skip(i + 1)
                     .map(move |b2| (b1, b2))
-                    .filter(|(b1, b2)| b1.intersects(b2))
+                    .filter(|(b1, b2)| b1.borrow().intersects(&b2.borrow()))
             })
-            .map(|(b1, b2)| b1.collision_data(b2))
+            .map(|(b1, b2)| b1.borrow().manifold(&b2.borrow()))
             .for_each(|manifold| manifold.unwrap().display(canvas));
     }
 
     pub fn add_debug_circle(&mut self, pos: Vector2D<f64>, mass: f64, r: f64) {
         let mut rng = rand::thread_rng();
-        self.bodies.push(RigidBody::new(
+        self.add_body(RigidBody::new(
             pos,
             mass,
             Circle {
@@ -219,7 +228,7 @@ impl PhysicsManager {
 
     pub fn add_debug_rect(&mut self, pos: Vector2D<f64>, mass: f64, w: f64, h: f64) {
         let mut rng = rand::thread_rng();
-        self.bodies.push(RigidBody::new(
+        self.add_body(RigidBody::new(
             pos,
             mass,
             Rect {

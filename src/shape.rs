@@ -1,4 +1,4 @@
-use crate::rigidbody::CollisionData;
+use crate::manifold::Manifold;
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
@@ -82,12 +82,12 @@ impl Shape {
         }
     }
 
-    pub fn collision_data(
+    pub fn manifold(
         shape1: &Shape,
         pos1: &Vector2D<f64>,
         shape2: &Shape,
         pos2: &Vector2D<f64>,
-    ) -> Option<CollisionData> {
+    ) -> Option<Manifold> {
         if !Shape::intersects(shape1, pos1, shape2, pos2) {
             return None;
         }
@@ -101,14 +101,14 @@ impl Shape {
                     (lower_corner_x + upper_corner_x) / 2.0,
                     (lower_corner_y + upper_corner_y) / 2.0,
                 );
-                if upper_corner_x - lower_corner_x >  upper_corner_y - lower_corner_y {
-                    Some(CollisionData {
+                if upper_corner_x - lower_corner_x > upper_corner_y - lower_corner_y {
+                    Some(Manifold {
                         collision_point,
                         normal_vector: Vector2D::new(0.0, if pos1.y < pos2.y { 1.0 } else { -1.0 }),
                         depth: upper_corner_y - lower_corner_y,
                     })
                 } else {
-                    Some(CollisionData {
+                    Some(Manifold {
                         collision_point,
                         normal_vector: Vector2D::new(if pos1.x < pos2.x { 1.0 } else { -1.0 }, 0.0),
                         depth: upper_corner_x - lower_corner_x,
@@ -121,7 +121,7 @@ impl Shape {
                 let close_y = pos2.y.max(pos1.y - h / 2.0).min(pos1.y + h / 2.0);
                 let close = &Vector2D::new(close_x, close_y);
                 let dist = (pos2 - close).length();
-                Some(CollisionData {
+                Some(Manifold {
                     collision_point: (close + pos2) / 2.0, //FIXME https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
                     normal_vector: if close == pos2 {
                         (pos2 - pos1).normalise()
@@ -135,13 +135,13 @@ impl Shape {
                 let diff = pos2 - pos1;
                 let overlap = (r1 + r2) - diff.length();
                 let norm = diff.normalise();
-                Some(CollisionData {
+                Some(Manifold {
                     collision_point: pos1 + &(norm * (overlap / 2.0 + r1)),
                     normal_vector: norm,
                     depth: overlap,
                 })
             }
-            (shape1, shape2) => match Shape::collision_data(shape2, pos2, shape1, pos1) {
+            (shape1, shape2) => match Shape::manifold(shape2, pos2, shape1, pos1) {
                 Some(mut collision_data) => {
                     collision_data.normal_vector *= -1.0;
                     Some(collision_data)
@@ -305,13 +305,13 @@ mod tests {
         let pos1 = &Vector2D::new(100.0, 100.0);
         let pos2 = &Vector2D::new(170.0, 100.0);
 
-        let collision_data = Shape::collision_data(shape1, pos1, shape2, pos2);
+        let collision_data = Shape::manifold(shape1, pos1, shape2, pos2);
         assert!(collision_data.is_none());
 
         let pos1 = &Vector2D::new(100.0, 100.0);
         let pos2 = &Vector2D::new(100.0, 140.0);
 
-        let collision_data = Shape::collision_data(shape1, pos1, shape2, pos2);
+        let collision_data = Shape::manifold(shape1, pos1, shape2, pos2);
         assert!(collision_data.is_some());
         let collision_data = collision_data.unwrap();
         assert_eq!(collision_data.collision_point, Vector2D::new(100.0, 115.0));
