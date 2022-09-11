@@ -1,6 +1,8 @@
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::input_handler::Input;
+use crate::manifold::Manifold;
 use crate::rigidbody::RigidBody;
 use crate::shape::Shape::{Circle, Rect};
 use rand::{self, Rng};
@@ -11,7 +13,7 @@ use sdl2::video::Window;
 use vector2d::Vector2D;
 
 pub struct PhysicsManager {
-    bodies: Vec<RefCell<RigidBody>>,
+    bodies: Vec<Rc<RefCell<RigidBody>>>,
     selected_index: Option<usize>,
     selected_offset: Option<Vector2D<f64>>,
 }
@@ -31,7 +33,7 @@ impl PhysicsManager {
         }
     }
     pub fn add_body(&mut self, body: RigidBody) {
-        self.bodies.push(RefCell::new(body));
+        self.bodies.push(Rc::new(RefCell::new(body)));
     }
 
     pub fn update(&mut self, input: &Input) {
@@ -47,46 +49,12 @@ impl PhysicsManager {
         for i in 0..self.bodies.len() {
             for j in i + 1..self.bodies.len() {
                 //body i and body j should not be the same so this should never panic
-                let mut body_i = self
-                    .bodies
-                    .get(i)
-                    .expect("ith element should exist")
-                    .borrow_mut();
-                let mut body_j = self
-                    .bodies
-                    .get(j)
-                    .expect("jth object should exist")
-                    .borrow_mut();
-
-                let body_i_inv_mass = body_i.inv_mass;
-                let body_j_inv_mass = body_j.inv_mass;
-
-                if !body_i.intersects(&body_j) || (body_i_inv_mass == 0.0 && body_j_inv_mass == 0.0)
-                {
-                    continue;
+                if let Some(mut manifold) = Manifold::new(
+                    Rc::clone(self.bodies.get(i).unwrap()),
+                    Rc::clone(self.bodies.get(j).unwrap()),
+                ) {
+                    manifold.resolve();
                 }
-
-                let manifold = body_i.manifold(&body_j).unwrap();
-
-                let percent = 0.8;
-                let correction = manifold.normal_vector * manifold.depth
-                    / (body_i.inv_mass + body_j.inv_mass)
-                    * percent;
-                body_i.pos -= correction * body_i_inv_mass;
-                body_j.pos += correction * body_j_inv_mass;
-
-                let rv = body_j.vel - body_i.vel;
-                let vel_along_normal = Vector2D::dot(manifold.normal_vector, rv);
-                if vel_along_normal > 0.0 {
-                    continue;
-                }
-                let e = body_i.restitution.min(body_j.restitution);
-                let mut impulse = -(1.0 + e) * vel_along_normal;
-                impulse /= 1.0 * body_i.inv_mass + 1.0 * body_j.inv_mass;
-
-                let impulse = manifold.normal_vector * impulse;
-                body_i.vel -= impulse * body_i_inv_mass;
-                body_j.vel += impulse * body_j_inv_mass;
             }
         }
     }
@@ -191,18 +159,17 @@ impl PhysicsManager {
             }
         }
 
-        self.bodies
-            .iter()
-            .enumerate()
-            .flat_map(|(i, b1)| {
-                self.bodies
-                    .iter()
-                    .skip(i + 1)
-                    .map(move |b2| (b1, b2))
-                    .filter(|(b1, b2)| b1.borrow().intersects(&b2.borrow()))
-            })
-            .map(|(b1, b2)| b1.borrow().manifold(&b2.borrow()))
-            .for_each(|manifold| manifold.unwrap().display(canvas));
+        //Debug code to show manifolds
+        for i in 0..self.bodies.len() {
+            for j in i + 1..self.bodies.len() {
+                if let Some(manifold) = Manifold::new(
+                    Rc::clone(self.bodies.get(i).unwrap()),
+                    Rc::clone(self.bodies.get(j).unwrap()),
+                ) {
+                    manifold.display(canvas);
+                }
+            }
+        }
     }
 
     pub fn add_debug_circle(&mut self, pos: Vector2D<f64>, mass: f64, r: f64) {

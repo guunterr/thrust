@@ -1,4 +1,3 @@
-use crate::manifold::Manifold;
 use crate::shape::Shape;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
@@ -10,7 +9,7 @@ pub struct RigidBody {
     pub vel: Vector2D<f64>,
     acc: Vector2D<f64>,
     pub inv_mass: f64,
-    shape: Shape,
+    pub shape: Shape,
     pub restitution: f64,
 }
 impl RigidBody {
@@ -46,10 +45,6 @@ impl RigidBody {
 
     pub fn intersects(&self, other: &RigidBody) -> bool {
         Shape::intersects(&self.shape, &self.pos, &other.shape, &other.pos)
-    }
-
-    pub fn manifold(&self, other: &RigidBody) -> Option<Manifold> {
-        Shape::manifold(&self.shape, &self.pos, &other.shape, &other.pos)
     }
 
     pub fn point_inside(&self, point: &Vector2D<f64>) -> bool {
