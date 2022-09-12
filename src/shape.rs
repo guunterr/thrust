@@ -1,3 +1,5 @@
+use std::ops::Mul;
+
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
@@ -125,16 +127,44 @@ impl Shape {
                 let close_x = pos2.x.max(pos1.x - w / 2.0).min(pos1.x + w / 2.0);
                 let close_y = pos2.y.max(pos1.y - h / 2.0).min(pos1.y + h / 2.0);
                 let close = &Vector2D::new(close_x, close_y);
-                let dist = (pos2 - close).length();
-                Some(CollisionData {
-                    collision_point: (close + pos2) / 2.0, //FIXME https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
-                    normal_vector: if close == pos2 {
-                        (pos2 - pos1).normalise()
+
+                if close == pos2 {
+                    //Circle inside rectangle
+                    let diff = pos2 - pos1;
+                    let x_side_dist = (diff.x.abs() - w / 2.0).abs();
+                    let y_side_dist = (diff.y.abs() - h / 2.0).abs();
+
+                    if x_side_dist < y_side_dist {
+                        //X direction
+                        let edge_point = Vector2D::new(pos1.x + diff.x.signum() * w / 2.0, pos2.y);
+                        let innermost_point = pos2 + &Vector2D::new(diff.x.signum() * -r, 0.0);
+                        return Some(CollisionData {
+                            collision_point: (edge_point + innermost_point) / 2.0,
+                            depth: (innermost_point - edge_point).length(),
+                            normal_vector: Vector2D::new(diff.x.signum(), 0.0),
+                        });
                     } else {
-                        (pos2 - close).normalise()
-                    },
-                    depth: r - dist,
-                })
+                        //Y direction
+                        let edge_point = Vector2D::new(pos2.x, pos1.y + diff.y.signum() * h / 2.0);
+                        let innermost_point = pos2 + &Vector2D::new(0.0, diff.y.signum() * -r);
+                        return Some(CollisionData {
+                            collision_point: (edge_point + innermost_point) / 2.0,
+                            depth: (innermost_point - edge_point).length(),
+                            normal_vector: Vector2D::new(0.0, diff.y.signum()),
+                        });
+                    }
+                } else {
+                    // Circle outside of rectangle
+                    let depth = r - (pos2 - close).length();
+                    let normal_vector = (pos2 - close).normalise();
+                    let innermost_point = pos2 - &(normal_vector * *r);
+                    println!("Normal vector: {:?}, Close: {:?}, Innermost point: {:?}, Depth: {:?}", normal_vector, close, innermost_point, depth);
+                    Some(CollisionData {
+                        collision_point: (close + &innermost_point) / 2.0,
+                        normal_vector,
+                        depth, 
+                    })
+                }
             }
             (Shape::Circle { r: r1, .. }, Shape::Circle { r: r2, .. }) => {
                 let diff = pos2 - pos1;
@@ -322,5 +352,103 @@ mod tests {
         assert_eq!(collision_data.collision_point, Vector2D::new(100.0, 115.0));
         assert_eq!(collision_data.depth, 10.0);
         assert_eq!(collision_data.normal_vector, Vector2D::new(0.0, 1.0));
+    }
+
+    fn test_collision_intersection_data(
+        shape1: &Shape,
+        pos1: &Vector2D<f64>,
+        shape2: &Shape,
+        pos2: &Vector2D<f64>,
+        collision_point: &Vector2D<f64>,
+        normal_vector: &Vector2D<f64>,
+        depth: f64,
+    ) {
+        let collision_data = Shape::collision_data(shape1, pos1, shape2, pos2);
+        assert!(collision_data.is_some());
+        let collision_data = collision_data.unwrap();
+
+        assert_eq!(collision_data.collision_point, *collision_point);
+        assert_eq!(collision_data.normal_vector, *normal_vector);
+        assert_eq!(collision_data.depth, depth);
+    }
+
+    #[test]
+    fn test_rectangle_circle_collision_data_vertical_outside() {
+        test_collision_intersection_data(
+            &Rect {
+                w: 200.0,
+                h: 50.0,
+                color: Color::RGB(255, 0, 255),
+            },
+            &Vector2D::new(0.0, 0.0),
+            &Circle {
+                r: 20.0,
+                color: Color::RGB(0, 255, 255),
+            },
+            &Vector2D::new(0.0, 40.0),
+            &Vector2D::new(0.0, 22.5),
+            &Vector2D::new(0.0, 1.0),
+            5.0,
+        );
+    }
+
+    #[test]
+    fn test_rectangle_circle_collision_data_vertical_inside() {
+        test_collision_intersection_data(
+            &Rect {
+                w: 200.0,
+                h: 50.0,
+                color: Color::RGB(255, 0, 255),
+            },
+            &Vector2D::new(0.0, 0.0),
+            &Circle {
+                r: 20.0,
+                color: Color::RGB(0, 255, 255),
+            },
+            &Vector2D::new(0.0, 20.0),
+            &Vector2D::new(0.0, 12.5),
+            &Vector2D::new(0.0, 1.0),
+            25.0,
+        );
+    }
+
+    #[test]
+    fn test_rectangle_circle_collision_data_horizontal_outside() {
+        test_collision_intersection_data(
+            &Rect {
+                w: 50.0,
+                h: 200.0,
+                color: Color::RGB(255, 0, 255),
+            },
+            &Vector2D::new(0.0, 0.0),
+            &Circle {
+                r: 20.0,
+                color: Color::RGB(0, 255, 255),
+            },
+            &Vector2D::new(40.0, 0.0),
+            &Vector2D::new(22.5, 0.0),
+            &Vector2D::new(1.0, 0.0),
+            5.0,
+        );
+    }
+
+    #[test]
+    fn test_rectangle_circle_collision_data_horizontal_inside() {
+        test_collision_intersection_data(
+            &Rect {
+                w: 50.0,
+                h: 200.0,
+                color: Color::RGB(255, 0, 255),
+            },
+            &Vector2D::new(0.0, 0.0),
+            &Circle {
+                r: 20.0,
+                color: Color::RGB(0, 255, 255),
+            },
+            &Vector2D::new(20.0, 0.0),
+            &Vector2D::new(12.5, 0.0),
+            &Vector2D::new(1.0, 0.0),
+            25.0,
+        );
     }
 }
