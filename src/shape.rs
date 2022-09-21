@@ -1,5 +1,3 @@
-use std::ops::Mul;
-
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
@@ -19,31 +17,25 @@ pub struct CollisionData {
 }
 
 impl Shape {
-    pub fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) {
+    pub fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) -> Result<(), String> {
         match self {
-            Shape::Rect { w, h, color } => {
-                canvas
-                    .filled_polygon(
-                        &[
-                            (pos.x - w / 2.0) as i16,
-                            (pos.x - w / 2.0) as i16,
-                            (pos.x + w / 2.0) as i16,
-                            (pos.x + w / 2.0) as i16,
-                        ],
-                        &[
-                            (pos.y - h / 2.0) as i16,
-                            (pos.y + h / 2.0) as i16,
-                            (pos.y + h / 2.0) as i16,
-                            (pos.y - h / 2.0) as i16,
-                        ],
-                        *color,
-                    )
-                    .unwrap();
-            }
+            Shape::Rect { w, h, color } => canvas.filled_polygon(
+                &[
+                    (pos.x - w / 2.0) as i16,
+                    (pos.x - w / 2.0) as i16,
+                    (pos.x + w / 2.0) as i16,
+                    (pos.x + w / 2.0) as i16,
+                ],
+                &[
+                    (pos.y - h / 2.0) as i16,
+                    (pos.y + h / 2.0) as i16,
+                    (pos.y + h / 2.0) as i16,
+                    (pos.y - h / 2.0) as i16,
+                ],
+                *color,
+            ),
             Shape::Circle { r, color } => {
-                canvas
-                    .filled_circle(pos.x as i16, pos.y as i16, *r as i16, *color)
-                    .unwrap();
+                canvas.filled_circle(pos.x as i16, pos.y as i16, *r as i16, *color)
             }
         }
     }
@@ -138,31 +130,30 @@ impl Shape {
                         //X direction
                         let edge_point = Vector2D::new(pos1.x + diff.x.signum() * w / 2.0, pos2.y);
                         let innermost_point = pos2 + &Vector2D::new(diff.x.signum() * -r, 0.0);
-                        return Some(CollisionData {
+                        Some(CollisionData {
                             collision_point: (edge_point + innermost_point) / 2.0,
                             depth: (innermost_point - edge_point).length(),
                             normal_vector: Vector2D::new(diff.x.signum(), 0.0),
-                        });
+                        })
                     } else {
                         //Y direction
                         let edge_point = Vector2D::new(pos2.x, pos1.y + diff.y.signum() * h / 2.0);
                         let innermost_point = pos2 + &Vector2D::new(0.0, diff.y.signum() * -r);
-                        return Some(CollisionData {
+                        Some(CollisionData {
                             collision_point: (edge_point + innermost_point) / 2.0,
                             depth: (innermost_point - edge_point).length(),
                             normal_vector: Vector2D::new(0.0, diff.y.signum()),
-                        });
+                        })
                     }
                 } else {
                     // Circle outside of rectangle
                     let depth = r - (pos2 - close).length();
                     let normal_vector = (pos2 - close).normalise();
                     let innermost_point = pos2 - &(normal_vector * *r);
-                    println!("Normal vector: {:?}, Close: {:?}, Innermost point: {:?}, Depth: {:?}", normal_vector, close, innermost_point, depth);
                     Some(CollisionData {
                         collision_point: (close + &innermost_point) / 2.0,
                         normal_vector,
-                        depth, 
+                        depth,
                     })
                 }
             }
@@ -352,6 +343,40 @@ mod tests {
         assert_eq!(collision_data.collision_point, Vector2D::new(100.0, 115.0));
         assert_eq!(collision_data.depth, 10.0);
         assert_eq!(collision_data.normal_vector, Vector2D::new(0.0, 1.0));
+    }
+
+    #[test]
+    fn test_circle_circle_collision_data() {
+        let shape1 = &Circle {
+            r: 40.0,
+            color: Color::RGB(255, 0, 255),
+        };
+        let shape2 = &Circle {
+            r: 40.0,
+            color: Color::RGB(255, 0, 255),
+        };
+
+        let pos1 = &Vector2D::new(100.0, 100.0);
+        let pos2 = &Vector2D::new(270.0, 150.0);
+
+        let collision_data = Shape::collision_data(shape1, pos1, shape2, pos2);
+        assert!(collision_data.is_none());
+
+        let pos1 = &Vector2D::new(0.0, 0.0);
+        let pos2 = &Vector2D::new(30.0, 40.0);
+
+        let collision_data = Shape::collision_data(shape1, pos1, shape2, pos2);
+        assert!(collision_data.is_some());
+        let collision_data = collision_data.unwrap();
+        assert_eq!(
+            collision_data.collision_point,
+            Vector2D::new(30.0 + 3.0, 40.0 + 4.0)
+        );
+        assert_eq!(collision_data.depth, 30.0);
+        assert_eq!(
+            collision_data.normal_vector,
+            Vector2D::new(3.0 / 5.0, 4.0 / 5.0)
+        );
     }
 
     fn test_collision_intersection_data(

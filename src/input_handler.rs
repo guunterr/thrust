@@ -15,7 +15,7 @@ pub struct Input {
     mouse_state_released: HashSet<MouseButton>,
 }
 
-impl Default for Input{
+impl Default for Input {
     fn default() -> Self {
         Self::new()
     }
@@ -59,7 +59,9 @@ impl Input {
                 self.keyboard_state_released.insert(*code);
                 self.keyboard_state.remove(code);
             }
-            Event::MouseMotion { x, y, xrel, yrel, .. } => {
+            Event::MouseMotion {
+                x, y, xrel, yrel, ..
+            } => {
                 self.mouse_pos = Vector2D::new(*x, *y);
                 self.mouse_pos_diff += Vector2D::new(*xrel, *yrel);
             }

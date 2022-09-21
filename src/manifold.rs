@@ -16,7 +16,6 @@ pub struct Manifold {
     pub normal_vector: Vector2D<f64>,
     pub depth: f64,
 }
-
 impl Manifold {
     pub fn new(body1: Rc<RefCell<RigidBody>>, body2: Rc<RefCell<RigidBody>>) -> Option<Self> {
         let collision_data = Shape::collision_data(

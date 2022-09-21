@@ -39,7 +39,7 @@ impl RigidBody {
         self.acc = Vector2D::new(0.0, 0.0);
     }
 
-    pub fn display(&self, canvas: &Canvas<Window>) {
+    pub fn display(&self, canvas: &Canvas<Window>) -> Result<(), String> {
         self.shape.display(canvas, &self.pos)
     }
 

@@ -1,12 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::input_handler::Input;
 use crate::manifold::Manifold;
 use crate::rigidbody::RigidBody;
 use crate::shape::Shape::{Circle, Rect};
 use rand::{self, Rng};
-use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
@@ -14,8 +12,6 @@ use vector2d::Vector2D;
 
 pub struct PhysicsManager {
     bodies: Vec<Rc<RefCell<RigidBody>>>,
-    selected_index: Option<usize>,
-    selected_offset: Option<Vector2D<f64>>,
 }
 
 impl Default for PhysicsManager {
@@ -26,24 +22,19 @@ impl Default for PhysicsManager {
 
 impl PhysicsManager {
     pub fn new() -> PhysicsManager {
-        PhysicsManager {
-            bodies: Vec::new(),
-            selected_index: None,
-            selected_offset: None,
-        }
+        PhysicsManager { bodies: Vec::new() }
     }
     pub fn add_body(&mut self, body: RigidBody) {
         self.bodies.push(Rc::new(RefCell::new(body)));
     }
 
-    pub fn update(&mut self, input: &Input) {
-        self.handle_user_input(input);
+    pub fn update(&mut self, dt: f64) {
         self.bodies.iter_mut().for_each(|body| {
             let mut body = body.borrow_mut();
             if body.inv_mass != 0.0 {
-                body.add_acc(Vector2D::new(0.0, 0.5));
+                body.add_acc(Vector2D::new(0.0, 9.8) * dt);
             }
-            body.integrate(1.0);
+            body.integrate(dt);
         });
 
         for i in 0..self.bodies.len() {
@@ -59,105 +50,48 @@ impl PhysicsManager {
         }
     }
 
-    fn handle_user_input(&mut self, input: &Input) {
-        use sdl2::mouse::MouseButton;
-        if input.is_mouse_pressed(&MouseButton::Left) || input.is_mouse_pressed(&MouseButton::Right)
-        {
-            let m = input.mouse_position().as_f64s();
-            self.selected_index = self
-                .bodies
-                .iter_mut()
-                .enumerate()
-                .find(|(_, body)| body.borrow().point_inside(&m))
-                .map(|element| element.0);
+    pub fn get_body_count(&self) -> usize {
+        self.bodies.len()
+    }
 
-            if let Some(i) = self.selected_index {
-                self.selected_offset = Some(m - self.bodies[i].borrow().pos)
-            }
+    pub fn delete_body(&mut self, _i: usize) -> Result<(), String> {
+        //To do this, we will need to turn our vec of bodies into a hashset indexed by uuid
+        todo!()
+    }
+
+    pub fn get_body_at(&self, point: &Vector2D<f64>) -> Option<usize> {
+        self.bodies
+            .iter()
+            .enumerate()
+            .find(|(_, body)| body.borrow().point_inside(point))
+            .map(|element| element.0)
+    }
+
+    pub fn get_body_position(&self, body_index: usize) -> Option<Vector2D<f64>> {
+        self.bodies.get(body_index).map(|body| body.borrow().pos)
+    }
+
+    pub fn set_body_position(&self, body_index: usize, pos: Vector2D<f64>) -> Result<(), String> {
+        if let Some(body) = self.bodies.get(body_index) {
+            body.borrow_mut().pos = pos;
+            Ok(())
+        } else {
+            Err("No such body".to_string())
         }
-
-        if input.is_mouse_down(&MouseButton::Left) {
-            if let (Some(i), Some(offset)) = (self.selected_index, self.selected_offset) {
-                self.bodies[i].borrow_mut().pos = input.mouse_position().as_f64s() - offset;
-            }
-        }
-
-        if input.is_mouse_released(&MouseButton::Left) {
-            if let Some(i) = self.selected_index {
-                self.bodies[i].borrow_mut().set_vel(Vector2D::new(0.0, 0.0));
-            }
-        }
-
-        if input.is_mouse_released(&MouseButton::Right) {
-            if let (Some(i), Some(offset)) = (self.selected_index, self.selected_offset) {
-                let diff = self.bodies[i].borrow().pos + offset - input.mouse_position().as_f64s();
-                self.bodies[i].borrow_mut().set_vel(diff / 10.0);
-            }
-        }
-
-        if input.is_mouse_released(&MouseButton::Left)
-            || input.is_mouse_released(&MouseButton::Right)
-        {
-            self.selected_index = None;
-            self.selected_offset = None;
-        }
-
-        let mut rng = rand::thread_rng();
-
-        if input.is_key_pressed(&Keycode::Z) {
-            self.add_debug_rect(
-                input.mouse_position().as_f64s(),
-                rng.gen_range(1.0..5.0),
-                rng.gen_range(40.0..50.0),
-                rng.gen_range(40.0..50.0),
-            );
-        }
-
-        if input.is_key_pressed(&Keycode::X) {
-            self.add_debug_circle(
-                input.mouse_position().as_f64s(),
-                rng.gen_range(1.0..5.0),
-                rng.gen_range(20.0..25.0),
-            );
-        }
-
-        if input.is_key_pressed(&Keycode::C) {
-            self.bodies.clear();
-        }
-
-        if input.is_key_pressed(&Keycode::M) {
-            self.add_debug_circle(
-                input.mouse_position().as_f64s(),
-                0.0,
-                rng.gen_range(40.0..80.0),
-            )
-        }
-        if input.is_key_pressed(&Keycode::N) {
-            self.add_debug_rect(
-                input.mouse_position().as_f64s(),
-                0.0,
-                rng.gen_range(40.0..80.0),
-                rng.gen_range(40.0..80.0),
-            )
+    }
+    pub fn set_body_velocity(&self, body_index: usize, vel: Vector2D<f64>) -> Result<(), String> {
+        if let Some(body) = self.bodies.get(body_index) {
+            body.borrow_mut().vel = vel;
+            Ok(())
+        } else {
+            Err("No such body".to_string())
         }
     }
 
-    pub fn display(&self, canvas: &mut Canvas<Window>, input: &Input) {
+    pub fn display(&self, canvas: &mut Canvas<Window>) -> Result<(), String> {
         self.bodies
             .iter()
-            .for_each(|body| body.borrow().display(canvas));
-
-        use sdl2::mouse::MouseButton;
-        if input.is_mouse_down(&MouseButton::Right) {
-            if let (Some(i), Some(offset)) = (self.selected_index, self.selected_offset) {
-                let start = input.mouse_position();
-                let end = (self.bodies[i].borrow().pos + offset).as_i32s();
-                canvas.set_draw_color(Color::RGB(255, 0, 0));
-                canvas
-                    .draw_line((start.x, start.y), (end.x, end.y))
-                    .unwrap();
-            }
-        }
+            .try_for_each(|body| body.borrow().display(canvas))?;
 
         //Debug code to show manifolds
         for i in 0..self.bodies.len() {
@@ -170,6 +104,7 @@ impl PhysicsManager {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn add_debug_circle(&mut self, pos: Vector2D<f64>, mass: f64, r: f64) {
