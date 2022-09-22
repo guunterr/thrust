@@ -51,8 +51,8 @@ where
     let mut input = Input::new();
     let mut physics_manager = PhysicsManager::new();
 
-    let mut physics_update_time_counter = 0.0;
-    let physics_frame_time = 1.0 / 60.0;
+    let mut physics_update_time_accumulator = 0.0;
+    let physics_frame_time = 1.0 / 10.0;
 
     let mut frame_start_time = Instant::now();
     let mut data = init(&mut physics_manager)?;
@@ -86,13 +86,13 @@ where
             sleep(Duration::from_millis(1000));
         }
 
-        physics_update_time_counter += dt;
-        while physics_update_time_counter > physics_frame_time {
-            physics_update_time_counter -= physics_frame_time;
+        physics_update_time_accumulator += dt;
+        while physics_update_time_accumulator > physics_frame_time {
+            physics_update_time_accumulator -= physics_frame_time;
             physics_manager.update(physics_frame_time);
         }
 
-        physics_manager.display(&mut canvas)?;
+        physics_manager.display(&mut canvas, physics_update_time_accumulator/physics_frame_time)?;
         canvas.present();
 
         let passed_time = Instant::now().duration_since(frame_start_time);

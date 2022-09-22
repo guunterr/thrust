@@ -6,6 +6,7 @@ use vector2d::Vector2D;
 #[derive(Debug, PartialEq)]
 pub struct RigidBody {
     pub pos: Vector2D<f64>,
+    prev_pos: Vector2D<f64>,
     pub vel: Vector2D<f64>,
     acc: Vector2D<f64>,
     pub inv_mass: f64,
@@ -16,6 +17,7 @@ impl RigidBody {
     pub fn new(pos: Vector2D<f64>, mass: f64, shape: Shape, restitution: f64) -> Self {
         RigidBody {
             pos,
+            prev_pos: pos,
             vel: Vector2D::new(0.0, 0.0),
             acc: Vector2D::new(0.0, 0.0),
             inv_mass: if mass == 0.0 { 0.0 } else { 1.0 / mass },
@@ -34,13 +36,14 @@ impl RigidBody {
     }
 
     pub fn integrate(&mut self, dt: f64) {
+        self.prev_pos = self.pos;
         self.vel += self.acc * dt;
         self.pos += self.vel * dt;
         self.acc = Vector2D::new(0.0, 0.0);
     }
 
-    pub fn display(&self, canvas: &Canvas<Window>) -> Result<(), String> {
-        self.shape.display(canvas, &self.pos)
+    pub fn display(&self, canvas: &Canvas<Window>, interpolation_factor: f64) -> Result<(), String> {
+        self.shape.display(canvas, &(self.pos * (interpolation_factor) + self.prev_pos * (1.0 - interpolation_factor)))
     }
 
     pub fn intersects(&self, other: &RigidBody) -> bool {

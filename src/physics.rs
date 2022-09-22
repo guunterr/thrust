@@ -88,10 +88,10 @@ impl PhysicsManager {
         }
     }
 
-    pub fn display(&self, canvas: &mut Canvas<Window>) -> Result<(), String> {
+    pub fn display(&self, canvas: &mut Canvas<Window>, interpolation_factor: f64) -> Result<(), String> {
         self.bodies
             .iter()
-            .try_for_each(|body| body.borrow().display(canvas))?;
+            .try_for_each(|body| body.borrow().display(canvas, interpolation_factor))?;
 
         //Debug code to show manifolds
         for i in 0..self.bodies.len() {
