@@ -26,7 +26,7 @@ impl Shape {
         }
     }
 
-    pub fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) -> Result<(), String> {
+    pub fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>, _rot: f64) -> Result<(), String> {
         match self {
             Shape::Rect { w, h, color } => canvas.filled_polygon(
                 &[

@@ -64,6 +64,9 @@ impl RigidBody {
     pub fn get_inv_mass(&self) -> f64 {
         self.mass_data.inv_mass
     }
+    pub fn get_inv_inertia(&self) -> f64 {
+        self.mass_data.inv_inertia
+    }
     pub fn get_shape(&self) -> Shape {
         self.shape
     }
@@ -79,7 +82,11 @@ impl RigidBody {
     }
 
     pub fn display(&self, canvas: &Canvas<Window>, interpolation_factor: f64) -> Result<(), String> {
-        self.shape.display(canvas, &(self.transform.pos * (interpolation_factor) + self.transform.prev_pos * (1.0 - interpolation_factor)))
+        self.shape.display(
+            canvas, 
+            &(self.transform.pos * (interpolation_factor) + self.transform.prev_pos * (1.0 - interpolation_factor)),
+            self.transform.rot * (interpolation_factor) + self.transform.prev_rot * (1.0 - interpolation_factor),
+        )
     }
 
     pub fn intersects(&self, other: &RigidBody) -> bool {
