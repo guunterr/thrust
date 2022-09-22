@@ -1,10 +1,12 @@
+use std::f64::consts::PI;
+
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Shape {
     Rect { w: f64, h: f64, color: Color },
     Circle { r: f64, color: Color },
@@ -17,6 +19,13 @@ pub struct CollisionData {
 }
 
 impl Shape {
+    pub fn area(&self) -> f64 {
+        match self {
+            Shape::Circle { r, .. } => PI * r.powi(2),
+            Shape::Rect { w, h, .. } => w * h,
+        }
+    }
+
     pub fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>) -> Result<(), String> {
         match self {
             Shape::Rect { w, h, color } => canvas.filled_polygon(
