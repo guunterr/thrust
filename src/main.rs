@@ -23,8 +23,8 @@ use vector2d::Vector2D;
 use input_handler::Input;
 use physics::PhysicsManager;
 
-const SCREEN_WIDTH: u32 = 800;
-const SCREEN_HEIGHT: u32 = 600;
+const SCREEN_WIDTH: u32 = 1600;
+const SCREEN_HEIGHT: u32 = 800;
 
 struct Data {
     selected_index: Option<usize>,
@@ -52,13 +52,13 @@ where
     let mut physics_manager = PhysicsManager::new();
 
     let mut physics_update_time_counter = 0.0;
-    let physics_frame_time = 1.0 / 600.0;
+    let physics_frame_time = 1.0 / 60.0;
 
     let mut frame_start_time = Instant::now();
     let mut data = init(&mut physics_manager)?;
 
     let mut event_pump = sdl.event_pump()?;
-    Ok('running: loop {
+    'running: loop {
         input.update();
         for event in event_pump.poll_iter() {
             input.handle_event(&event);
@@ -97,49 +97,57 @@ where
 
         let passed_time = Instant::now().duration_since(frame_start_time);
         sleep(Duration::from_secs_f64(1.0 / 60.0).saturating_sub(passed_time));
-    })
+    };
+    Ok(())
 }
 
 fn main() -> Result<(), String> {
     let init = |physics_manager: &mut PhysicsManager| {
+        let wall_thickness: f64 = 1500.0;
         physics_manager.add_body(RigidBody::new(
-            Vector2D::new(400.0, 600.0),
+            Vector2D::new(
+                SCREEN_WIDTH as f64 / 2.0,
+                SCREEN_HEIGHT as f64 + wall_thickness / 2.0,
+            ),
             0.0,
             Shape::Rect {
-                w: 800.0,
-                h: 50.0,
+                w: SCREEN_WIDTH as f64 * 10.0,
+                h: wall_thickness - 2.0,
                 color: Color::WHITE,
             },
             0.9,
         ));
         physics_manager.add_body(RigidBody::new(
-            Vector2D::new(400.0, 0.0),
+            Vector2D::new(SCREEN_WIDTH as f64 / 2.0, -wall_thickness / 2.0),
             0.0,
             Shape::Rect {
-                w: 800.0,
-                h: 50.0,
-                color: Color::WHITE,
-            },
-            0.9,
-        ));
-
-        physics_manager.add_body(RigidBody::new(
-            Vector2D::new(0.0, 300.0),
-            0.0,
-            Shape::Rect {
-                w: 50.0,
-                h: 600.0,
+                w: SCREEN_WIDTH as f64 * 10.0,
+                h: wall_thickness - 2.0,
                 color: Color::WHITE,
             },
             0.9,
         ));
 
         physics_manager.add_body(RigidBody::new(
-            Vector2D::new(800.0, 300.0),
+            Vector2D::new(0.0 - wall_thickness / 2.0, SCREEN_HEIGHT as f64 / 2.0),
             0.0,
             Shape::Rect {
-                w: 50.0,
-                h: 600.0,
+                w: wall_thickness - 2.0,
+                h: SCREEN_HEIGHT as f64 * 10.0,
+                color: Color::WHITE,
+            },
+            0.9,
+        ));
+
+        physics_manager.add_body(RigidBody::new(
+            Vector2D::new(
+                SCREEN_WIDTH as f64 + wall_thickness / 2.0,
+                SCREEN_HEIGHT as f64 / 2.0,
+            ),
+            0.0,
+            Shape::Rect {
+                w: wall_thickness - 2.0,
+                h: SCREEN_HEIGHT as f64 * 10.0,
                 color: Color::WHITE,
             },
             0.9,
@@ -197,8 +205,8 @@ fn main() -> Result<(), String> {
             physics_manager.add_debug_rect(
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
-                rng.gen_range(40.0..50.0),
-                rng.gen_range(40.0..50.0),
+                rng.gen_range(18.0..27.0),
+                rng.gen_range(18.0..27.0),
             );
         }
 
@@ -206,7 +214,7 @@ fn main() -> Result<(), String> {
             physics_manager.add_debug_circle(
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
-                rng.gen_range(20.0..25.0),
+                rng.gen_range(12.0..20.0),
             );
         }
 
