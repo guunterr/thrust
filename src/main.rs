@@ -6,7 +6,7 @@ pub mod rigidbody;
 pub mod shape;
 
 use rand::Rng;
-use rigidbody::{RigidBody, ROCK, STATIC};
+use rigidbody::{RigidBody, BOUNCY_BALL, METAL, ROCK, STATIC};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -124,7 +124,7 @@ pub fn add_debug_circle(
                 )
             },
         },
-        ROCK,
+        BOUNCY_BALL,
     ));
 }
 
@@ -151,7 +151,7 @@ pub fn add_debug_rect(
                 )
             },
         },
-        ROCK,
+        METAL,
     ));
 }
 

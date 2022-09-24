@@ -15,15 +15,34 @@ pub struct Material {
     restitution: f64,
     density: f64,
 }
-pub const ROCK: Material = Material{ density: 0.6, restitution: 0.1 };
-pub const WOOD: Material = Material{ density: 0.3, restitution: 0.2 };
-pub const METAL: Material = Material{ density: 1.2, restitution: 0.8 };
-pub const BOUNCY_BALL: Material = Material{ density: 0.3, restitution: 0.8 };
-pub const SUPER_BALL: Material = Material{ density: 0.3, restitution: 0.95 };
-pub const PILLOW: Material = Material{ density: 0.1, restitution: 0.2 };
-pub const STATIC: Material = Material{ density: 0.0, restitution: 0.4 };
-
-
+pub const ROCK: Material = Material {
+    density: 0.6,
+    restitution: 0.1,
+};
+pub const WOOD: Material = Material {
+    density: 0.3,
+    restitution: 0.2,
+};
+pub const METAL: Material = Material {
+    density: 1.2,
+    restitution: 0.8,
+};
+pub const BOUNCY_BALL: Material = Material {
+    density: 0.3,
+    restitution: 0.8,
+};
+pub const SUPER_BALL: Material = Material {
+    density: 0.3,
+    restitution: 0.95,
+};
+pub const PILLOW: Material = Material {
+    density: 0.1,
+    restitution: 0.2,
+};
+pub const STATIC: Material = Material {
+    density: 0.0,
+    restitution: 0.4,
+};
 
 #[derive(Debug)]
 pub struct MassData {
@@ -42,13 +61,21 @@ pub struct RigidBody {
 }
 
 impl RigidBody {
-    pub fn new(pos: Vector2D<f64>, shape: Shape, material: Material) -> Self{
+    pub fn new(pos: Vector2D<f64>, shape: Shape, material: Material) -> Self {
         let mass = material.density * shape.area();
         RigidBody {
             shape,
-            transform: Transform { pos, prev_pos:pos, rot: 0.0, prev_rot: 0.0 },
+            transform: Transform {
+                pos,
+                prev_pos: pos,
+                rot: 0.0,
+                prev_rot: 0.0,
+            },
             material,
-            mass_data: MassData { inv_mass: if mass == 0.0 { 0.0 } else { mass.recip() }, inv_inertia: 0.0 },
+            mass_data: MassData {
+                inv_mass: if mass == 0.0 { 0.0 } else { mass.recip() },
+                inv_inertia: 0.0,
+            },
             vel: Vector2D::new(0.0, 0.0),
             acc: Vector2D::new(0.0, 0.0),
         }
@@ -67,10 +94,10 @@ impl RigidBody {
     pub fn get_inv_inertia(&self) -> f64 {
         self.mass_data.inv_inertia
     }
-    pub fn get_shape(&self) -> Shape {
-        self.shape
+    pub fn get_shape(&self) -> &Shape {
+        &self.shape
     }
-    pub fn get_restitution(&self) -> f64{
+    pub fn get_restitution(&self) -> f64 {
         self.material.restitution
     }
 
@@ -81,16 +108,27 @@ impl RigidBody {
         self.acc = Vector2D::new(0.0, 0.0);
     }
 
-    pub fn display(&self, canvas: &Canvas<Window>, interpolation_factor: f64) -> Result<(), String> {
+    pub fn display(
+        &self,
+        canvas: &Canvas<Window>,
+        interpolation_factor: f64,
+    ) -> Result<(), String> {
         self.shape.display(
-            canvas, 
-            &(self.transform.pos * (interpolation_factor) + self.transform.prev_pos * (1.0 - interpolation_factor)),
-            self.transform.rot * (interpolation_factor) + self.transform.prev_rot * (1.0 - interpolation_factor),
+            canvas,
+            &(self.transform.pos * (interpolation_factor)
+                + self.transform.prev_pos * (1.0 - interpolation_factor)),
+            self.transform.rot * (interpolation_factor)
+                + self.transform.prev_rot * (1.0 - interpolation_factor),
         )
     }
 
     pub fn intersects(&self, other: &RigidBody) -> bool {
-        Shape::intersects(&self.shape, &self.transform.pos, &other.shape, &other.transform.pos)
+        Shape::intersects(
+            &self.shape,
+            &self.transform.pos,
+            &other.shape,
+            &other.transform.pos,
+        )
     }
 
     pub fn point_inside(&self, point: &Vector2D<f64>) -> bool {

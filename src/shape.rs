@@ -6,7 +6,7 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq)]
 pub enum Shape {
     Rect { w: f64, h: f64, color: Color },
     Circle { r: f64, color: Color },
@@ -26,7 +26,12 @@ impl Shape {
         }
     }
 
-    pub fn display(&self, canvas: &Canvas<Window>, pos: &Vector2D<f64>, _rot: f64) -> Result<(), String> {
+    pub fn display(
+        &self,
+        canvas: &Canvas<Window>,
+        pos: &Vector2D<f64>,
+        _rot: f64,
+    ) -> Result<(), String> {
         match self {
             Shape::Rect { w, h, color } => canvas.filled_polygon(
                 &[
@@ -46,6 +51,21 @@ impl Shape {
             Shape::Circle { r, color } => {
                 canvas.filled_circle(pos.x as i16, pos.y as i16, *r as i16, *color)
             }
+        }
+    }
+
+    pub fn get_aabb(&self) -> Shape {
+        match self {
+            Shape::Rect { w, h, color } => Shape::Rect {
+                w: *w,
+                h: *h,
+                color: *color,
+            },
+            Shape::Circle { r, color } => Shape::Rect {
+                w: 2.0 * r,
+                h: 2.0 * r,
+                color: *color,
+            },
         }
     }
 

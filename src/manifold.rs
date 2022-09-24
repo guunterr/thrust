@@ -19,9 +19,9 @@ pub struct Manifold {
 impl Manifold {
     pub fn new(body1: Rc<RefCell<RigidBody>>, body2: Rc<RefCell<RigidBody>>) -> Option<Self> {
         let collision_data = Shape::collision_data(
-            &body1.borrow().get_shape(),
+            body1.borrow().get_shape(),
             &body1.borrow().transform.pos,
-            &body2.borrow().get_shape(),
+            body2.borrow().get_shape(),
             &body2.borrow().transform.pos,
         );
 
@@ -45,8 +45,9 @@ impl Manifold {
         let body_j_inv_mass = body_j.get_inv_mass();
 
         let percent = 0.8;
-        let correction =
-            self.normal_vector * self.depth / (body_i.get_inv_mass() + body_j.get_inv_mass()) * percent;
+        let correction = self.normal_vector * self.depth
+            / (body_i.get_inv_mass() + body_j.get_inv_mass())
+            * percent;
         body_i.transform.pos -= correction * body_i_inv_mass;
         body_j.transform.pos += correction * body_j_inv_mass;
     }

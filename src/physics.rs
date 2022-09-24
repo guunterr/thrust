@@ -29,7 +29,7 @@ impl PhysicsManager {
         self.bodies.iter_mut().for_each(|body| {
             let mut body = body.borrow_mut();
             if body.get_inv_mass() != 0.0 {
-                body.add_acc(Vector2D::new(0.0, 9.8) * dt);
+                body.add_acc(Vector2D::new(0.0, 3500.0));
             }
             body.integrate(dt);
         });
@@ -65,7 +65,9 @@ impl PhysicsManager {
     }
 
     pub fn get_body_position(&self, body_index: usize) -> Option<Vector2D<f64>> {
-        self.bodies.get(body_index).map(|body| body.borrow().transform.pos)
+        self.bodies
+            .get(body_index)
+            .map(|body| body.borrow().transform.pos)
     }
 
     pub fn set_body_position(&self, body_index: usize, pos: Vector2D<f64>) -> Result<(), String> {
@@ -85,7 +87,11 @@ impl PhysicsManager {
         }
     }
 
-    pub fn display(&self, canvas: &mut Canvas<Window>, interpolation_factor: f64) -> Result<(), String> {
+    pub fn display(
+        &self,
+        canvas: &mut Canvas<Window>,
+        interpolation_factor: f64,
+    ) -> Result<(), String> {
         self.bodies
             .iter()
             .try_for_each(|body| body.borrow().display(canvas, interpolation_factor))?;
@@ -103,5 +109,4 @@ impl PhysicsManager {
         // }
         Ok(())
     }
-
 }
