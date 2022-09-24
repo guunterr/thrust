@@ -9,12 +9,13 @@ use sdl2::video::Window;
 
 use thrust::input_handler::Input;
 use thrust::physics::PhysicsManager;
-use thrust::rigidbody::{RigidBody, BOUNCY_BALL, METAL, ROCK, STATIC};
+use thrust::rigidbody::{RigidBody, BOUNCY_BALL, METAL, STATIC};
 use thrust::shape::Shape;
 
 use rand::Rng;
 use vector2d::Vector2D;
 
+use std::env;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
@@ -151,6 +152,7 @@ pub fn add_debug_rect(
 }
 
 fn main() -> Result<(), String> {
+    env::set_var("RUST_BACKTRACE", "1");
     let init = |physics_manager: &mut PhysicsManager| {
         let wall_thickness: f64 = 1500.0;
         physics_manager.add_body(RigidBody::new(
@@ -251,8 +253,8 @@ fn main() -> Result<(), String> {
                 physics_manager,
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
-                rng.gen_range(18.0..27.0),
-                rng.gen_range(18.0..27.0),
+                rng.gen_range(35.0..50.0),
+                rng.gen_range(35.0..50.0),
             );
         }
 
@@ -261,7 +263,7 @@ fn main() -> Result<(), String> {
                 physics_manager,
                 input.mouse_position().as_f64s(),
                 rng.gen_range(1.0..5.0),
-                rng.gen_range(12.0..20.0),
+                rng.gen_range(25.0..35.0),
             );
         }
 

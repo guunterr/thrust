@@ -17,34 +17,32 @@ pub struct Manifold {
     pub depth: f64,
 }
 impl Manifold {
-    pub fn new(body1: Rc<RefCell<RigidBody>>, body2: Rc<RefCell<RigidBody>>) -> Option<Self> {
-        let collision_data = Shape::collision_data(
+    pub fn new(body1: Rc<RefCell<RigidBody>>, body2: Rc<RefCell<RigidBody>>) -> Self {
+        let CollisionData {
+            collision_point,
+            normal_vector,
+            depth,
+        } = Shape::collision_data(
             body1.borrow().get_shape(),
             &body1.borrow().transform.pos,
             body2.borrow().get_shape(),
             &body2.borrow().transform.pos,
         );
 
-        collision_data.map(
-            |CollisionData {
-                 collision_point,
-                 normal_vector,
-                 depth,
-             }| Manifold {
-                body1,
-                body2,
-                collision_point,
-                normal_vector,
-                depth,
-            },
-        )
+        Manifold {
+            body1,
+            body2,
+            collision_point,
+            normal_vector,
+            depth,
+        }
     }
 
     fn depth_correct(&self, body_i: &mut RigidBody, body_j: &mut RigidBody) {
         let body_i_inv_mass = body_i.get_inv_mass();
         let body_j_inv_mass = body_j.get_inv_mass();
 
-        let percent = 0.8;
+        let percent = 0.5;
         let correction = self.normal_vector * self.depth
             / (body_i.get_inv_mass() + body_j.get_inv_mass())
             * percent;
@@ -74,7 +72,9 @@ impl Manifold {
         let mut body_i = self.body1.borrow_mut();
         let mut body_j = self.body2.borrow_mut();
 
-        assert!(body_i.intersects(&body_j));
+        if !body_i.intersects(&body_i) {
+            return;
+        }
 
         if body_i.get_inv_mass() == 0.0 && body_j.get_inv_mass() == 0.0 {
             return;
