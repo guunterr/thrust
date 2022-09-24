@@ -1,27 +1,22 @@
 extern crate sdl2;
-pub mod input_handler;
-pub mod manifold;
-pub mod physics;
-pub mod rigidbody;
-pub mod shape;
 
-use rand::Rng;
-use rigidbody::{RigidBody, BOUNCY_BALL, METAL, ROCK, STATIC};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
-use shape::Shape;
-use std::{
-    thread::sleep,
-    time::{Duration, Instant},
-};
+
+use thrust::input_handler::Input;
+use thrust::physics::PhysicsManager;
+use thrust::rigidbody::{RigidBody, BOUNCY_BALL, METAL, ROCK, STATIC};
+use thrust::shape::Shape;
+
+use rand::Rng;
 use vector2d::Vector2D;
 
-use input_handler::Input;
-use physics::PhysicsManager;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 const SCREEN_WIDTH: u32 = 1600;
 const SCREEN_HEIGHT: u32 = 800;
