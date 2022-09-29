@@ -8,8 +8,9 @@ use vector2d::Vector2D;
 
 #[derive(Debug, PartialEq)]
 pub enum Shape {
-    Rect { w: f64, h: f64, color: Color },
-    Circle { r: f64, color: Color },
+    Rect { w: f64, h: f64 },
+    Circle { r: f64 },
+    Polygon { points: Vec<Vector2D<f64>> },
 }
 
 pub struct CollisionData {
@@ -23,6 +24,7 @@ impl Shape {
         match self {
             Shape::Circle { r, .. } => PI * r.powi(2),
             Shape::Rect { w, h, .. } => w * h,
+            Shape::Polygon { .. } => todo!(),
         }
     }
 
@@ -31,9 +33,10 @@ impl Shape {
         canvas: &Canvas<Window>,
         pos: &Vector2D<f64>,
         _rot: f64,
+        color: &Color,
     ) -> Result<(), String> {
         match self {
-            Shape::Rect { w, h, color } => canvas.filled_polygon(
+            Shape::Rect { w, h } => canvas.filled_polygon(
                 &[
                     (pos.x - w / 2.0) as i16,
                     (pos.x - w / 2.0) as i16,
@@ -48,24 +51,27 @@ impl Shape {
                 ],
                 *color,
             ),
-            Shape::Circle { r, color } => {
+            Shape::Circle { r } => {
                 canvas.filled_circle(pos.x as i16, pos.y as i16, *r as i16, *color)
+            }
+            Shape::Polygon { points } => {
+                let (vx, vy): (Vec<_>, Vec<_>) = points
+                    .iter()
+                    .map(|vector| ((vector.x + pos.x) as i16, (vector.y + pos.y) as i16))
+                    .unzip();
+                canvas.filled_polygon(&vx, &vy, *color)
             }
         }
     }
 
     pub fn get_aabb(&self) -> Shape {
         match self {
-            Shape::Rect { w, h, color } => Shape::Rect {
-                w: *w,
-                h: *h,
-                color: *color,
-            },
-            Shape::Circle { r, color } => Shape::Rect {
+            Shape::Rect { w, h } => Shape::Rect { w: *w, h: *h },
+            Shape::Circle { r } => Shape::Rect {
                 w: 2.0 * r,
                 h: 2.0 * r,
-                color: *color,
             },
+            Shape::Polygon { .. } => todo!(),
         }
     }
 
@@ -82,6 +88,7 @@ impl Shape {
                 let dist = (offset - point).length_squared();
                 dist < r.powi(2)
             }
+            Shape::Polygon { .. } => todo!(),
         }
     }
 
@@ -106,6 +113,7 @@ impl Shape {
                 let dist = (pos1 - pos2).length_squared();
                 dist <= (r1 + r2).powi(2)
             }
+            (Shape::Polygon { .. }, _) => todo!(),
             (shape1, shape2) => Shape::intersects(shape2, pos2, shape1, pos1),
         }
     }
@@ -194,6 +202,7 @@ impl Shape {
                     depth: overlap,
                 }
             }
+            (Shape::Polygon { .. }, _) => todo!(),
             (shape1, shape2) => {
                 let mut collision_data = Shape::collision_data(shape2, pos2, shape1, pos1);
                 collision_data.normal_vector *= -1.0;
@@ -205,22 +214,13 @@ impl Shape {
 
 #[cfg(test)]
 mod tests {
-    use sdl2::pixels::Color;
     use vector2d::Vector2D;
 
     use super::Shape::{self, Circle, Rect};
     #[test]
     fn test_rectangle_intersection() {
-        let shape1 = &Rect {
-            w: 20.0,
-            h: 30.0,
-            color: Color::RGB(255, 255, 255),
-        };
-        let shape2 = &Rect {
-            w: 50.0,
-            h: 10.0,
-            color: Color::RGB(255, 0, 255),
-        };
+        let shape1 = &Rect { w: 20.0, h: 30.0 };
+        let shape2 = &Rect { w: 50.0, h: 10.0 };
         let pos1 = &Vector2D::new(100.0, 100.0);
         let pos2 = &Vector2D::new(130.0, 110.0);
 
@@ -260,14 +260,8 @@ mod tests {
 
     #[test]
     fn test_circle_intersection() {
-        let shape1 = &Circle {
-            r: 30.0,
-            color: Color::RGB(255, 255, 255),
-        };
-        let shape2 = &Circle {
-            r: 20.0,
-            color: Color::RGB(255, 255, 255),
-        };
+        let shape1 = &Circle { r: 30.0 };
+        let shape2 = &Circle { r: 20.0 };
 
         let pos1 = &Vector2D::new(100.0, 100.0);
         let pos2 = &Vector2D::new(130.0, 100.0);
@@ -308,15 +302,8 @@ mod tests {
 
     #[test]
     fn test_rectangle_circle_intersection() {
-        let shape1 = &Rect {
-            w: 30.0,
-            h: 50.0,
-            color: Color::RGB(255, 255, 255),
-        };
-        let shape2 = &Circle {
-            r: 30.0,
-            color: Color::RGB(255, 0, 0),
-        };
+        let shape1 = &Rect { w: 30.0, h: 50.0 };
+        let shape2 = &Circle { r: 30.0 };
 
         let pos1 = &Vector2D::new(100.0, 100.0);
         let pos2 = &Vector2D::new(140.0, 140.0);
@@ -342,16 +329,8 @@ mod tests {
 
     #[test]
     fn test_rectangle_rectangle_collision_data() {
-        let shape1 = &Rect {
-            w: 50.0,
-            h: 40.0,
-            color: Color::RGB(255, 0, 255),
-        };
-        let shape2 = &Rect {
-            w: 40.0,
-            h: 60.0,
-            color: Color::RGB(0, 255, 255),
-        };
+        let shape1 = &Rect { w: 50.0, h: 40.0 };
+        let shape2 = &Rect { w: 40.0, h: 60.0 };
         let pos1 = &Vector2D::new(100.0, 100.0);
         let pos2 = &Vector2D::new(100.0, 140.0);
 
@@ -364,14 +343,8 @@ mod tests {
 
     #[test]
     fn test_circle_circle_collision_data() {
-        let shape1 = &Circle {
-            r: 40.0,
-            color: Color::RGB(255, 0, 255),
-        };
-        let shape2 = &Circle {
-            r: 40.0,
-            color: Color::RGB(255, 0, 255),
-        };
+        let shape1 = &Circle { r: 40.0 };
+        let shape2 = &Circle { r: 40.0 };
 
         let pos1 = &Vector2D::new(0.0, 0.0);
         let pos2 = &Vector2D::new(30.0, 40.0);
@@ -409,16 +382,9 @@ mod tests {
     #[test]
     fn test_rectangle_circle_collision_data_vertical_outside() {
         test_collision_intersection_data(
-            &Rect {
-                w: 200.0,
-                h: 50.0,
-                color: Color::RGB(255, 0, 255),
-            },
+            &Rect { w: 200.0, h: 50.0 },
             &Vector2D::new(0.0, 0.0),
-            &Circle {
-                r: 20.0,
-                color: Color::RGB(0, 255, 255),
-            },
+            &Circle { r: 20.0 },
             &Vector2D::new(0.0, 40.0),
             &Vector2D::new(0.0, 22.5),
             &Vector2D::new(0.0, 1.0),
@@ -429,16 +395,9 @@ mod tests {
     #[test]
     fn test_rectangle_circle_collision_data_vertical_inside() {
         test_collision_intersection_data(
-            &Rect {
-                w: 200.0,
-                h: 50.0,
-                color: Color::RGB(255, 0, 255),
-            },
+            &Rect { w: 200.0, h: 50.0 },
             &Vector2D::new(0.0, 0.0),
-            &Circle {
-                r: 20.0,
-                color: Color::RGB(0, 255, 255),
-            },
+            &Circle { r: 20.0 },
             &Vector2D::new(0.0, 20.0),
             &Vector2D::new(0.0, 12.5),
             &Vector2D::new(0.0, 1.0),
@@ -449,16 +408,9 @@ mod tests {
     #[test]
     fn test_rectangle_circle_collision_data_horizontal_outside() {
         test_collision_intersection_data(
-            &Rect {
-                w: 50.0,
-                h: 200.0,
-                color: Color::RGB(255, 0, 255),
-            },
+            &Rect { w: 50.0, h: 200.0 },
             &Vector2D::new(0.0, 0.0),
-            &Circle {
-                r: 20.0,
-                color: Color::RGB(0, 255, 255),
-            },
+            &Circle { r: 20.0 },
             &Vector2D::new(40.0, 0.0),
             &Vector2D::new(22.5, 0.0),
             &Vector2D::new(1.0, 0.0),
@@ -469,16 +421,9 @@ mod tests {
     #[test]
     fn test_rectangle_circle_collision_data_horizontal_inside() {
         test_collision_intersection_data(
-            &Rect {
-                w: 50.0,
-                h: 200.0,
-                color: Color::RGB(255, 0, 255),
-            },
+            &Rect { w: 50.0, h: 200.0 },
             &Vector2D::new(0.0, 0.0),
-            &Circle {
-                r: 20.0,
-                color: Color::RGB(0, 255, 255),
-            },
+            &Circle { r: 20.0 },
             &Vector2D::new(20.0, 0.0),
             &Vector2D::new(12.5, 0.0),
             &Vector2D::new(1.0, 0.0),

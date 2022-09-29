@@ -94,7 +94,10 @@ impl PhysicsManager {
     }
 
     pub fn delete_body(&mut self, i: u128) -> Result<(), String> {
-        self.bodies.remove(&i).ok_or("No body with that id".to_string()).map(|_| ())
+        self.bodies
+            .remove(&i)
+            .ok_or_else(|| "No body with that id".to_string())
+            .map(|_| ())
     }
 
     pub fn get_body_at(&self, point: &Vector2D<f64>) -> Option<u128> {

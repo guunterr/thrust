@@ -1,4 +1,5 @@
 use crate::shape::Shape;
+use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
@@ -14,34 +15,42 @@ pub struct Transform {
 pub struct Material {
     restitution: f64,
     density: f64,
+    color: Color,
 }
 pub const ROCK: Material = Material {
     density: 0.6,
     restitution: 0.1,
+    color: Color::GRAY,
 };
 pub const WOOD: Material = Material {
     density: 0.3,
     restitution: 0.2,
+    color: Color::RGB(170, 170, 0),
 };
 pub const METAL: Material = Material {
     density: 1.2,
     restitution: 0.8,
+    color: Color::RGB(200, 200, 200),
 };
 pub const BOUNCY_BALL: Material = Material {
     density: 0.3,
     restitution: 0.8,
+    color: Color::CYAN,
 };
 pub const SUPER_BALL: Material = Material {
     density: 0.3,
     restitution: 0.95,
+    color: Color::MAGENTA,
 };
 pub const PILLOW: Material = Material {
     density: 0.1,
     restitution: 0.2,
+    color: Color::WHITE,
 };
 pub const STATIC: Material = Material {
     density: 0.0,
     restitution: 0.4,
+    color: Color::YELLOW,
 };
 
 #[derive(Debug)]
@@ -119,6 +128,7 @@ impl RigidBody {
                 + self.transform.prev_pos * (1.0 - interpolation_factor)),
             self.transform.rot * (interpolation_factor)
                 + self.transform.prev_rot * (1.0 - interpolation_factor),
+            &self.material.color,
         )
     }
 

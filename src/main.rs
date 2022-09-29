@@ -16,9 +16,9 @@ use rand::Rng;
 use vector2d::Vector2D;
 
 use std::collections::HashSet;
-use std::env;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use std::{env, iter};
 
 const SCREEN_WIDTH: u32 = 1600;
 const SCREEN_HEIGHT: u32 = 800;
@@ -55,6 +55,43 @@ where
     let mut data = init(&mut physics_manager)?;
 
     let mut event_pump = sdl.event_pump()?;
+
+    let mut polygons: Vec<Shape> = Vec::new();
+
+    let triangle = Shape::Polygon {
+        points: vec![
+            Vector2D::new(0.0, 20.0),
+            Vector2D::new(40.0, 20.0),
+            Vector2D::new(10.0, 90.0),
+        ],
+    };
+
+    polygons.push(triangle);
+
+    let mut evil_rng = rand::thread_rng();
+    let eldritch_polygon = Shape::Polygon {
+        points: iter::repeat_with(|| {
+            Vector2D::new(
+                evil_rng.gen_range(-50.0..50.0),
+                evil_rng.gen_range(-50.0..50.0),
+            )
+        })
+        .take(15)
+        .collect::<Vec<Vector2D<f64>>>(),
+    };
+
+    polygons.push(eldritch_polygon);
+
+    let diamond = Shape::Polygon {
+        points: vec![
+            Vector2D::new(0.0, 40.0),
+            Vector2D::new(-20.0, 0.0),
+            Vector2D::new(0.0, -40.0),
+            Vector2D::new(20.0, 0.0),
+        ],
+    };
+    polygons.push(diamond);
+
     'running: loop {
         input.update();
         for event in event_pump.poll_iter() {
@@ -79,10 +116,6 @@ where
 
         update(&mut data, dt, &mut canvas, &mut input, &mut physics_manager)?;
 
-        if input.is_key_pressed(&Keycode::Space) {
-            sleep(Duration::from_millis(1000));
-        }
-
         physics_update_time_accumulator += dt;
         while physics_update_time_accumulator > physics_frame_time {
             physics_update_time_accumulator -= physics_frame_time;
@@ -93,6 +126,17 @@ where
             &mut canvas,
             physics_update_time_accumulator / physics_frame_time,
         )?;
+
+        polygons.iter().enumerate().for_each(|(i, poly)| {
+            poly.display(
+                &canvas,
+                &Vector2D::new((i + 1) as f64 * 100.0, 200.0),
+                0.0,
+                &Color::MAGENTA,
+            )
+            .unwrap()
+        });
+
         canvas.present();
 
         let passed_time = Instant::now().duration_since(frame_start_time);
@@ -101,56 +145,12 @@ where
     Ok(())
 }
 
-pub fn add_debug_circle(
-    physics_manager: &mut PhysicsManager,
-    pos: Vector2D<f64>,
-    mass: f64,
-    r: f64,
-) {
-    let mut rng = rand::thread_rng();
-    physics_manager.add_body(RigidBody::new(
-        pos,
-        Shape::Circle {
-            r,
-            color: if mass == 0.0 {
-                Color::RGB(255, 255, 255)
-            } else {
-                Color::RGB(
-                    rng.gen_range(0..=255),
-                    rng.gen_range(0..=255),
-                    rng.gen_range(0..=255),
-                )
-            },
-        },
-        BOUNCY_BALL,
-    ));
+pub fn add_debug_circle(physics_manager: &mut PhysicsManager, pos: Vector2D<f64>, r: f64) {
+    physics_manager.add_body(RigidBody::new(pos, Shape::Circle { r }, BOUNCY_BALL));
 }
 
-pub fn add_debug_rect(
-    physics_manager: &mut PhysicsManager,
-    pos: Vector2D<f64>,
-    mass: f64,
-    w: f64,
-    h: f64,
-) {
-    let mut rng = rand::thread_rng();
-    physics_manager.add_body(RigidBody::new(
-        pos,
-        Shape::Rect {
-            w,
-            h,
-            color: if mass == 0.0 {
-                Color::RGB(255, 255, 255)
-            } else {
-                Color::RGB(
-                    rng.gen_range(0..=255),
-                    rng.gen_range(0..=255),
-                    rng.gen_range(0..=255),
-                )
-            },
-        },
-        METAL,
-    ));
+pub fn add_debug_rect(physics_manager: &mut PhysicsManager, pos: Vector2D<f64>, w: f64, h: f64) {
+    physics_manager.add_body(RigidBody::new(pos, Shape::Rect { w, h }, METAL));
 }
 
 fn main() -> Result<(), String> {
@@ -166,7 +166,6 @@ fn main() -> Result<(), String> {
             Shape::Rect {
                 w: SCREEN_WIDTH as f64 * 10.0,
                 h: wall_thickness - 2.0,
-                color: Color::WHITE,
             },
             STATIC,
         )));
@@ -175,7 +174,6 @@ fn main() -> Result<(), String> {
             Shape::Rect {
                 w: SCREEN_WIDTH as f64 * 10.0,
                 h: wall_thickness - 2.0,
-                color: Color::WHITE,
             },
             STATIC,
         )));
@@ -185,7 +183,6 @@ fn main() -> Result<(), String> {
             Shape::Rect {
                 w: wall_thickness - 2.0,
                 h: SCREEN_HEIGHT as f64 * 10.0,
-                color: Color::WHITE,
             },
             STATIC,
         )));
@@ -198,7 +195,6 @@ fn main() -> Result<(), String> {
             Shape::Rect {
                 w: wall_thickness - 2.0,
                 h: SCREEN_HEIGHT as f64 * 10.0,
-                color: Color::WHITE,
             },
             STATIC,
         )));
@@ -209,7 +205,7 @@ fn main() -> Result<(), String> {
         })
     };
     let update = |data: &mut Data,
-                  dt: f64,
+                  _dt: f64,
                   canvas: &mut Canvas<Window>,
                   input: &Input,
                   physics_manager: &mut PhysicsManager| {
@@ -256,7 +252,6 @@ fn main() -> Result<(), String> {
             add_debug_rect(
                 physics_manager,
                 input.mouse_position().as_f64s(),
-                rng.gen_range(1.0..5.0),
                 rng.gen_range(35.0..50.0),
                 rng.gen_range(35.0..50.0),
             );
@@ -266,7 +261,6 @@ fn main() -> Result<(), String> {
             add_debug_circle(
                 physics_manager,
                 input.mouse_position().as_f64s(),
-                rng.gen_range(1.0..5.0),
                 rng.gen_range(25.0..35.0),
             );
         }
@@ -274,7 +268,7 @@ fn main() -> Result<(), String> {
         if input.is_key_pressed(&Keycode::C) {
             let bodies = physics_manager.get_body_count();
             for i in 0..bodies {
-                if !data.fixed_objects.contains(&i) { 
+                if !data.fixed_objects.contains(&i) {
                     physics_manager.delete_body(i)?;
                 }
             }
@@ -284,7 +278,6 @@ fn main() -> Result<(), String> {
             add_debug_circle(
                 physics_manager,
                 input.mouse_position().as_f64s(),
-                0.0,
                 rng.gen_range(40.0..80.0),
             )
         }
@@ -292,7 +285,6 @@ fn main() -> Result<(), String> {
             add_debug_rect(
                 physics_manager,
                 input.mouse_position().as_f64s(),
-                0.0,
                 rng.gen_range(40.0..80.0),
                 rng.gen_range(40.0..80.0),
             )
