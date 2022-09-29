@@ -72,7 +72,7 @@ impl Manifold {
         let mut body_i = self.body1.borrow_mut();
         let mut body_j = self.body2.borrow_mut();
 
-        if !body_i.intersects(&body_i) {
+        if !body_i.intersects(&body_j) {
             return;
         }
 

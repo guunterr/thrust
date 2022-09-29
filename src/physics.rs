@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::manifold::Manifold;
@@ -11,7 +12,8 @@ use vector2d::Vector2D;
 type BodyPair = (Rc<RefCell<RigidBody>>, Rc<RefCell<RigidBody>>);
 
 pub struct PhysicsManager {
-    bodies: Vec<Rc<RefCell<RigidBody>>>,
+    bodies: HashMap<u128, Rc<RefCell<RigidBody>>>,
+    index: u128,
 }
 
 impl Default for PhysicsManager {
@@ -22,14 +24,19 @@ impl Default for PhysicsManager {
 
 impl PhysicsManager {
     pub fn new() -> PhysicsManager {
-        PhysicsManager { bodies: Vec::new() }
+        PhysicsManager {
+            bodies: HashMap::new(),
+            index: 0,
+        }
     }
-    pub fn add_body(&mut self, body: RigidBody) {
-        self.bodies.push(Rc::new(RefCell::new(body)));
+    pub fn add_body(&mut self, body: RigidBody) -> u128 {
+        self.bodies.insert(self.index, Rc::new(RefCell::new(body)));
+        self.index += 1;
+        self.index - 1
     }
 
     pub fn update(&mut self, dt: f64) {
-        self.bodies.iter_mut().for_each(|body| {
+        self.bodies.iter_mut().for_each(|(_index, body)| {
             let mut body = body.borrow_mut();
             if body.get_inv_mass() != 0.0 {
                 body.add_acc(Vector2D::new(0.0, 3500.0));
@@ -37,7 +44,14 @@ impl PhysicsManager {
             body.integrate(dt);
         });
 
-        let broad_phase_pairs = &Self::broad_phase(&self.bodies);
+        let broad_phase_pairs = &Self::broad_phase(
+            &self
+                .bodies
+                .values()
+                .into_iter()
+                .cloned()
+                .collect::<Vec<Rc<RefCell<RigidBody>>>>(),
+        );
         let colliding_pairs = Self::narrow_phase(broad_phase_pairs);
         assert!(colliding_pairs
             .iter()
@@ -52,8 +66,8 @@ impl PhysicsManager {
     fn broad_phase(bodies: &[Rc<RefCell<RigidBody>>]) -> Vec<BodyPair> {
         let mut out = Vec::with_capacity(bodies.len());
         for i in 0..bodies.len() {
+            let body_i = bodies[i].borrow();
             for j in i + 1..bodies.len() {
-                let body_i = bodies[i].borrow();
                 let body_j = bodies[j].borrow();
                 if Shape::intersects(
                     &body_i.get_shape().get_aabb(),
@@ -75,39 +89,37 @@ impl PhysicsManager {
             .collect()
     }
 
-    pub fn get_body_count(&self) -> usize {
-        self.bodies.len()
+    pub fn get_body_count(&self) -> u128 {
+        self.bodies.len() as u128
     }
 
-    pub fn delete_body(&mut self, _i: usize) -> Result<(), String> {
-        //To do this, we will need to turn our vec of bodies into a hashset indexed by uuid
-        todo!()
+    pub fn delete_body(&mut self, i: u128) -> Result<(), String> {
+        self.bodies.remove(&i).ok_or("No body with that id".to_string()).map(|_| ())
     }
 
-    pub fn get_body_at(&self, point: &Vector2D<f64>) -> Option<usize> {
+    pub fn get_body_at(&self, point: &Vector2D<f64>) -> Option<u128> {
         self.bodies
             .iter()
-            .enumerate()
-            .find(|(_, body)| body.borrow().point_inside(point))
-            .map(|element| element.0)
+            .find(|(_index, body)| body.borrow().point_inside(point))
+            .map(|element| *element.0)
     }
 
-    pub fn get_body_position(&self, body_index: usize) -> Option<Vector2D<f64>> {
+    pub fn get_body_position(&self, body_index: u128) -> Option<Vector2D<f64>> {
         self.bodies
-            .get(body_index)
+            .get(&body_index)
             .map(|body| body.borrow().transform.pos)
     }
 
-    pub fn set_body_position(&self, body_index: usize, pos: Vector2D<f64>) -> Result<(), String> {
-        if let Some(body) = self.bodies.get(body_index) {
+    pub fn set_body_position(&self, body_index: u128, pos: Vector2D<f64>) -> Result<(), String> {
+        if let Some(body) = self.bodies.get(&body_index) {
             body.borrow_mut().transform.pos = pos;
             Ok(())
         } else {
             Err("No such body".to_string())
         }
     }
-    pub fn set_body_velocity(&self, body_index: usize, vel: Vector2D<f64>) -> Result<(), String> {
-        if let Some(body) = self.bodies.get(body_index) {
+    pub fn set_body_velocity(&self, body_index: u128, vel: Vector2D<f64>) -> Result<(), String> {
+        if let Some(body) = self.bodies.get(&body_index) {
             body.borrow_mut().vel = vel;
             Ok(())
         } else {
@@ -122,7 +134,7 @@ impl PhysicsManager {
     ) -> Result<(), String> {
         self.bodies
             .iter()
-            .try_for_each(|body| body.borrow().display(canvas, interpolation_factor))?;
+            .try_for_each(|(_i, body)| body.borrow().display(canvas, interpolation_factor))?;
 
         // //Debug code to show manifolds
         // for i in 0..self.bodies.len() {

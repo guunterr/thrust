@@ -194,12 +194,11 @@ impl Shape {
                     depth: overlap,
                 }
             }
-            (shape1, shape2) => match Shape::collision_data(shape2, pos2, shape1, pos1) {
-                mut collision_data => {
-                    collision_data.normal_vector *= -1.0;
-                    collision_data
-                }
-            },
+            (shape1, shape2) => {
+                let mut collision_data = Shape::collision_data(shape2, pos2, shape1, pos1);
+                collision_data.normal_vector *= -1.0;
+                collision_data
+            }
         }
     }
 }

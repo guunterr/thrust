@@ -15,6 +15,7 @@ use thrust::shape::Shape;
 use rand::Rng;
 use vector2d::Vector2D;
 
+use std::collections::HashSet;
 use std::env;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -22,8 +23,9 @@ use std::time::{Duration, Instant};
 const SCREEN_WIDTH: u32 = 1600;
 const SCREEN_HEIGHT: u32 = 800;
 struct Data {
-    selected_index: Option<usize>,
+    selected_index: Option<u128>,
     selected_offset: Option<Vector2D<f64>>,
+    fixed_objects: HashSet<u128>,
 }
 
 fn start_game<T, F1, F2>(init: F1, update: F2) -> Result<(), String>
@@ -155,7 +157,8 @@ fn main() -> Result<(), String> {
     env::set_var("RUST_BACKTRACE", "1");
     let init = |physics_manager: &mut PhysicsManager| {
         let wall_thickness: f64 = 1500.0;
-        physics_manager.add_body(RigidBody::new(
+        let mut fixed_objects = HashSet::with_capacity(4);
+        fixed_objects.insert(physics_manager.add_body(RigidBody::new(
             Vector2D::new(
                 SCREEN_WIDTH as f64 / 2.0,
                 SCREEN_HEIGHT as f64 + wall_thickness / 2.0,
@@ -166,8 +169,8 @@ fn main() -> Result<(), String> {
                 color: Color::WHITE,
             },
             STATIC,
-        ));
-        physics_manager.add_body(RigidBody::new(
+        )));
+        fixed_objects.insert(physics_manager.add_body(RigidBody::new(
             Vector2D::new(SCREEN_WIDTH as f64 / 2.0, -wall_thickness / 2.0),
             Shape::Rect {
                 w: SCREEN_WIDTH as f64 * 10.0,
@@ -175,9 +178,9 @@ fn main() -> Result<(), String> {
                 color: Color::WHITE,
             },
             STATIC,
-        ));
+        )));
 
-        physics_manager.add_body(RigidBody::new(
+        fixed_objects.insert(physics_manager.add_body(RigidBody::new(
             Vector2D::new(0.0 - wall_thickness / 2.0, SCREEN_HEIGHT as f64 / 2.0),
             Shape::Rect {
                 w: wall_thickness - 2.0,
@@ -185,9 +188,9 @@ fn main() -> Result<(), String> {
                 color: Color::WHITE,
             },
             STATIC,
-        ));
+        )));
 
-        physics_manager.add_body(RigidBody::new(
+        fixed_objects.insert(physics_manager.add_body(RigidBody::new(
             Vector2D::new(
                 SCREEN_WIDTH as f64 + wall_thickness / 2.0,
                 SCREEN_HEIGHT as f64 / 2.0,
@@ -198,10 +201,11 @@ fn main() -> Result<(), String> {
                 color: Color::WHITE,
             },
             STATIC,
-        ));
+        )));
         Ok(Data {
             selected_index: None,
             selected_offset: None,
+            fixed_objects,
         })
     };
     let update = |data: &mut Data,
@@ -270,7 +274,9 @@ fn main() -> Result<(), String> {
         if input.is_key_pressed(&Keycode::C) {
             let bodies = physics_manager.get_body_count();
             for i in 0..bodies {
-                physics_manager.delete_body(i).unwrap();
+                if !data.fixed_objects.contains(&i) { 
+                    physics_manager.delete_body(i)?;
+                }
             }
         }
 
