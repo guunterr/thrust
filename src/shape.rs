@@ -19,6 +19,29 @@ pub struct CollisionData {
     pub normal_vector: Vector2D<f64>,
     pub depth: f64,
 }
+impl CollisionData {
+    pub fn display(&self, canvas: &Canvas<Window>) {
+        let p1 = self.collision_point - self.normal_vector * self.depth / 2.0;
+        let p2 = self.collision_point + self.normal_vector * self.depth / 2.0;
+        canvas
+            .line(
+                p1.x as i16,
+                p1.y as i16,
+                p2.x as i16,
+                p2.y as i16,
+                Color::WHITE,
+            )
+            .unwrap();
+        canvas
+            .circle(
+                self.collision_point.x as i16,
+                self.collision_point.y as i16,
+                5,
+                Color::WHITE,
+            )
+            .unwrap();
+    }
+}
 
 impl Shape {
     pub fn area(&self) -> f64 {
@@ -230,6 +253,52 @@ impl Shape {
                     depth: overlap,
                 }
             }
+            (Shape::Polygon { points: points1 }, Shape::Polygon { points: points2 }) => {
+                let ps1 = &points1.iter().map(|p| p+pos1).collect::<Vec<_>>();
+                let ps2 = &points2.iter().map(|p| p+pos2).collect::<Vec<_>>();
+
+                let mut collision_point = Vector2D::new(0.0, 0.0);
+                let mut normal_vector = Vector2D::new(0.0, 0.0);
+                let mut depth = INFINITY;
+
+                for i in 0..ps1.len() {
+                    let n = (ps1[i]-ps1[(i+1)%ps1.len()]).normal().normalise();
+                    let mut deepest_i = 0;
+                    for i in 1..ps2.len() {
+                        if Vector2D::dot(n, ps2[deepest_i]) > Vector2D::dot(n, ps2[i]) {
+                            deepest_i = i;
+                        }
+                    }
+
+                    let d = -Vector2D::dot(n, ps2[deepest_i]-ps1[i]);
+                    if d <= depth {
+                        collision_point = ps2[deepest_i] + n * d/2.0;
+                        depth = d;
+                        normal_vector = n;
+                    }
+                }
+                for i in 0..ps2.len() {
+                    let n = (ps2[i]-ps2[(i+1)%ps2.len()]).normal().normalise();
+                    let mut deepest_i = 0;
+                    for i in 1..ps1.len() {
+                        if Vector2D::dot(n, ps1[deepest_i]) > Vector2D::dot(n, ps1[i]) {
+                            deepest_i = i;
+                        }
+                    }
+
+                    let d = -Vector2D::dot(n, ps1[deepest_i]-ps2[i]);
+                    if d <= depth {
+                        collision_point = ps1[deepest_i] + n * d/2.0;
+                        depth = d;
+                        normal_vector = -n;
+                    }
+                }
+                CollisionData {
+                    collision_point,
+                    normal_vector,
+                    depth,
+                }
+            },
             (Shape::Polygon { .. }, _) => todo!(),
             (shape1, shape2) => {
                 let mut collision_data = Shape::collision_data(shape2, pos2, shape1, pos1);

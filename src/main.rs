@@ -18,7 +18,7 @@ use vector2d::Vector2D;
 use std::collections::HashSet;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use std::{env, iter};
+use std::env;
 
 const SCREEN_WIDTH: u32 = 1600;
 const SCREEN_HEIGHT: u32 = 800;
@@ -74,27 +74,27 @@ where
             Vector2D::new(0.0, 0.0),
         ],
     };
-    //polygons.push(tri2);
+    polygons.push(tri2);
 
-    let mut evil_rng = rand::thread_rng();
-    let _eldritch_polygon = Shape::Polygon {
-        points: iter::repeat_with(|| {
-            Vector2D::new(
-                evil_rng.gen_range(-50.0..50.0),
-                evil_rng.gen_range(-50.0..50.0),
-            )
-        })
-        .take(15)
-        .collect::<Vec<Vector2D<f64>>>(),
-    };
+    // let mut evil_rng = rand::thread_rng();
+    // let _eldritch_polygon = Shape::Polygon {
+    //     points: iter::repeat_with(|| {
+    //         Vector2D::new(
+    //             evil_rng.gen_range(-50.0..50.0),
+    //             evil_rng.gen_range(-50.0..50.0),
+    //         )
+    //     })
+    //     .take(15)
+    //     .collect::<Vec<Vector2D<f64>>>(),
+    // };
     //polygons.push(eldritch_polygon);
 
     let diamond = Shape::Polygon {
         points: vec![
             Vector2D::new(0.0, 40.0),
-            Vector2D::new(-20.0, 0.0),
+            Vector2D::new(-50.0, 0.0),
             Vector2D::new(0.0, -40.0),
-            Vector2D::new(20.0, 0.0),
+            Vector2D::new(50.0, 0.0),
         ],
     };
     //polygons.push(diamond);
@@ -142,18 +142,22 @@ where
         )?;
         polygons.iter().enumerate().for_each(|(i, poly)| {
             let pos = &Vector2D::new((i + 1) as f64 * 100.0, 200.0);
-            let color = if Shape::intersects(poly, pos, &diamond, &input.mouse_position().as_f64s()) {
-                Color::MAGENTA
-            } else {
-                Color::CYAN
-            };
+            let intersects = Shape::intersects(poly, pos, &diamond, &input.mouse_position().as_f64s()); 
+            let color = if intersects { Color::MAGENTA } else { Color::CYAN };
+
+            let data = Shape::collision_data(poly, pos, &diamond, &input.mouse_position().as_f64s());
+
             poly.display(
                 &canvas,
                 pos,
                 0.0,
                 &color,
             )
-            .unwrap()
+            .unwrap();
+
+            if intersects {
+                data.display(&canvas);
+            }
         });
 
         canvas.present();
