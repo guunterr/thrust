@@ -9,9 +9,9 @@ use vector2d::Vector2D;
 
 #[derive(Debug, PartialEq)]
 pub enum Shape {
-    Rect { w: f64, h: f64 },
+    Rect { w: f64, h: f64 }, // TODO delete this shit
     Circle { r: f64 },
-    Polygon { points: Vec<Vector2D<f64>> },
+    Polygon { points: Vec<Vector2D<f64>> }, // TODO check for correct (convex, clockwise)
 }
 
 pub struct CollisionData {
@@ -88,6 +88,7 @@ impl Shape {
         }
     }
 
+    // TODO replace with different aabb class
     pub fn get_aabb(&self) -> Shape {
         match self {
             Shape::Rect { w, h } => Shape::Rect { w: *w, h: *h },
@@ -99,6 +100,7 @@ impl Shape {
         }
     }
 
+    // TODO implement for polygon
     pub fn point_inside(&self, offset: &Vector2D<f64>, point: &Vector2D<f64>) -> bool {
         match self {
             Shape::Rect { w, h, .. } => {
@@ -116,6 +118,7 @@ impl Shape {
         }
     }
 
+    // TODO delete
     pub fn intersects(
         shape1: &Shape,
         pos1: &Vector2D<f64>,
@@ -170,6 +173,7 @@ impl Shape {
     }
 
     // undefined behaviour for
+    // TODO replace with an option
     pub fn collision_data(
         shape1: &Shape,
         pos1: &Vector2D<f64>,
@@ -243,7 +247,7 @@ impl Shape {
                     }
                 }
             }
-            (Shape::Circle { r: r1, .. }, Shape::Circle { r: r2, .. }) => {
+            (Shape::Circle { r: r1 }, Shape::Circle { r: r2 }) => {
                 let diff = pos2 - pos1;
                 let overlap = (r1 + r2) - diff.length();
                 let norm = diff.normalise();
@@ -251,6 +255,14 @@ impl Shape {
                     collision_point: pos1 + &(norm * (overlap / 2.0 + r1)),
                     normal_vector: norm,
                     depth: overlap,
+                }
+            }
+            (Shape::Polygon { points: points1 }, Shape::Circle { r: r }) => {
+                // TODO  implement
+                CollisionData {
+                    collision_point: Vector2D::new(0.0, 0.0),
+                    normal_vector: Vector2D::new(0.0, 0.0),
+                    depth: 0.0,
                 }
             }
             (Shape::Polygon { points: points1 }, Shape::Polygon { points: points2 }) => {
