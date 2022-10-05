@@ -115,37 +115,29 @@ impl Shape {
                 dist <= (r1 + r2).powi(2)
             }
             (Shape::Polygon { points: ps1 }, Shape::Polygon { points: ps2 }) => {
-                for i in 0..ps1.len() {
-                    let p1 = ps1[i];
-                    let p2 = ps1[(i+1)%ps1.len()];
-                    let n = Vector2D::new(p1.y - p2.y, p2.x - p1.x);
+                fn sat(pos1: &Vector2D<f64>,
+                       ps1: &Vec<Vector2D<f64>>,
+                       pos2: &Vector2D<f64>,
+                       ps2: &Vec<Vector2D<f64>>,
+                ) -> bool {
+                    for i in 0..ps1.len() {
+                        let p1 = ps1[i];
+                        let p2 = ps1[(i+1)%ps1.len()];
+                        let n = Vector2D::new(p1.y - p2.y, p2.x - p1.x);
 
-                    let mut min_dist = INFINITY;
-                    for &q in ps2 {
-                        let dist = Vector2D::dot(n, p1+*pos1-q-*pos2);
-                        if dist < min_dist { min_dist = dist }
-                    }
+                        let mut min_dist = INFINITY;
+                        for &q in ps2 {
+                            let dist = Vector2D::dot(n, p1+*pos1-q-*pos2);
+                            if dist < min_dist { min_dist = dist }
+                        }
 
-                    if min_dist > 0.0 {
-                        return false;
+                        if min_dist > 0.0 {
+                            return false;
+                        }
                     }
+                    true
                 }
-                for i in 0..ps2.len() {
-                    let p1 = ps2[i];
-                    let p2 = ps2[(i+1)%ps2.len()];
-                    let n = Vector2D::new(p1.y - p2.y, p2.x - p1.x);
-
-                    let mut min_dist = INFINITY;
-                    for &q in ps1 {
-                        let dist = Vector2D::dot(n, p1+*pos2-q-*pos1);
-                        if dist < min_dist { min_dist = dist }
-                    }
-
-                    if min_dist > 0.0 {
-                        return false;
-                    }
-                }
-                true
+                sat(pos1, ps1, pos2, ps2) && sat(pos2, ps2, pos1, ps1)
             },
             (Shape::Polygon { .. }, _) => {
                 todo!();
