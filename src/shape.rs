@@ -1,3 +1,4 @@
+use std::f64::INFINITY;
 use std::f64::consts::PI;
 
 use sdl2::gfx::primitives::DrawRenderer;
@@ -113,7 +114,42 @@ impl Shape {
                 let dist = (pos1 - pos2).length_squared();
                 dist <= (r1 + r2).powi(2)
             }
-            (Shape::Polygon { .. }, _) => todo!(),
+            (Shape::Polygon { points: ps1 }, Shape::Polygon { points: ps2 }) => {
+                for i in 0..ps1.len() {
+                    let p1 = ps1[i];
+                    let p2 = ps1[(i+1)%ps1.len()];
+                    let n = Vector2D::new(p1.y - p2.y, p2.x - p1.x);
+
+                    let mut min_dist = INFINITY;
+                    for &q in ps2 {
+                        let dist = Vector2D::dot(n, p1+*pos1-q-*pos2);
+                        if dist < min_dist { min_dist = dist }
+                    }
+
+                    if min_dist > 0.0 {
+                        return false;
+                    }
+                }
+                for i in 0..ps2.len() {
+                    let p1 = ps2[i];
+                    let p2 = ps2[(i+1)%ps2.len()];
+                    let n = Vector2D::new(p1.y - p2.y, p2.x - p1.x);
+
+                    let mut min_dist = INFINITY;
+                    for &q in ps1 {
+                        let dist = Vector2D::dot(n, p1+*pos2-q-*pos1);
+                        if dist < min_dist { min_dist = dist }
+                    }
+
+                    if min_dist > 0.0 {
+                        return false;
+                    }
+                }
+                true
+            },
+            (Shape::Polygon { .. }, _) => {
+                todo!();
+            },
             (shape1, shape2) => Shape::intersects(shape2, pos2, shape1, pos1),
         }
     }

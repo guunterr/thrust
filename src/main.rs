@@ -65,11 +65,19 @@ where
             Vector2D::new(10.0, 90.0),
         ],
     };
-
     polygons.push(triangle);
 
+    let tri2 = Shape::Polygon {
+        points: vec![
+            Vector2D::new(40.0, 00.0),
+            Vector2D::new(0.0, 50.0),
+            Vector2D::new(0.0, 0.0),
+        ],
+    };
+    //polygons.push(tri2);
+
     let mut evil_rng = rand::thread_rng();
-    let eldritch_polygon = Shape::Polygon {
+    let _eldritch_polygon = Shape::Polygon {
         points: iter::repeat_with(|| {
             Vector2D::new(
                 evil_rng.gen_range(-50.0..50.0),
@@ -79,8 +87,7 @@ where
         .take(15)
         .collect::<Vec<Vector2D<f64>>>(),
     };
-
-    polygons.push(eldritch_polygon);
+    //polygons.push(eldritch_polygon);
 
     let diamond = Shape::Polygon {
         points: vec![
@@ -90,7 +97,7 @@ where
             Vector2D::new(20.0, 0.0),
         ],
     };
-    polygons.push(diamond);
+    //polygons.push(diamond);
 
     'running: loop {
         input.update();
@@ -127,12 +134,24 @@ where
             physics_update_time_accumulator / physics_frame_time,
         )?;
 
+        diamond.display(
+            &canvas,
+            &input.mouse_position().as_f64s(),
+            0.0,
+            &Color::RED,
+        )?;
         polygons.iter().enumerate().for_each(|(i, poly)| {
+            let pos = &Vector2D::new((i + 1) as f64 * 100.0, 200.0);
+            let color = if Shape::intersects(poly, pos, &diamond, &input.mouse_position().as_f64s()) {
+                Color::MAGENTA
+            } else {
+                Color::CYAN
+            };
             poly.display(
                 &canvas,
-                &Vector2D::new((i + 1) as f64 * 100.0, 200.0),
+                pos,
                 0.0,
-                &Color::MAGENTA,
+                &color,
             )
             .unwrap()
         });
