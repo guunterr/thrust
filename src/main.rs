@@ -76,27 +76,20 @@ where
     };
     polygons.push(tri2);
 
-    // let mut evil_rng = rand::thread_rng();
-    // let _eldritch_polygon = Shape::Polygon {
-    //     points: iter::repeat_with(|| {
-    //         Vector2D::new(
-    //             evil_rng.gen_range(-50.0..50.0),
-    //             evil_rng.gen_range(-50.0..50.0),
-    //         )
-    //     })
-    //     .take(15)
-    //     .collect::<Vec<Vector2D<f64>>>(),
+    let diamond = Shape::poly(vec![
+        Vector2D::new(0.0, -40.0),
+        Vector2D::new(50.0, 0.0),
+        Vector2D::new(0.0, 40.0),
+        Vector2D::new(-50.0, 0.0),
+    ]);
+    // Shape::Polygon {
+    //     points: vec![
+    //         Vector2D::new(0.0, 40.0),
+    //         Vector2D::new(-50.0, 0.0),
+    //         Vector2D::new(0.0, -40.0),
+    //         Vector2D::new(50.0, 0.0),
+    //     ],
     // };
-    //polygons.push(eldritch_polygon);
-
-    let diamond = Shape::Polygon {
-        points: vec![
-            Vector2D::new(0.0, 40.0),
-            Vector2D::new(-50.0, 0.0),
-            Vector2D::new(0.0, -40.0),
-            Vector2D::new(50.0, 0.0),
-        ],
-    };
     //polygons.push(diamond);
 
     'running: loop {

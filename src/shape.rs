@@ -14,6 +14,19 @@ pub enum Shape {
     Polygon { points: Vec<Vector2D<f64>> }, // TODO check for correct (convex, clockwise)
 }
 
+impl Shape {
+    pub fn poly(ps: Vec<Vector2D<f64>>) -> Self{
+        for i in 0..ps.len() {
+            let p1 = ps[i];
+            let p2 = ps[(i+1)%ps.len()];
+            let p3 = ps[(i+2)%ps.len()];
+            let angle = ((p3 - p2).angle() - (p2 - p1).angle()).rem_euclid(2.0 * PI);
+
+            assert!(angle > 0.0 && angle < PI, "POLYGON NOT CLOCKWISE: Angle between points needs to be 0 < x < pi but was {:.2}", angle);
+        }
+        Shape::Polygon { points: ps }
+    }
+}
 pub struct CollisionData {
     pub collision_point: Vector2D<f64>,
     pub normal_vector: Vector2D<f64>,
@@ -275,32 +288,32 @@ impl Shape {
 
                 for i in 0..ps1.len() {
                     let n = (ps1[i]-ps1[(i+1)%ps1.len()]).normal().normalise();
-                    let mut deepest_i = 0;
-                    for i in 1..ps2.len() {
-                        if Vector2D::dot(n, ps2[deepest_i]) > Vector2D::dot(n, ps2[i]) {
-                            deepest_i = i;
+                    let mut deepest_j = 0;
+                    for j in 1..ps2.len() {
+                        if Vector2D::dot(n, ps2[deepest_j]) > Vector2D::dot(n, ps2[j]) {
+                            deepest_j = j;
                         }
                     }
 
-                    let d = -Vector2D::dot(n, ps2[deepest_i]-ps1[i]);
+                    let d = -Vector2D::dot(n, ps2[deepest_j]-ps1[i]);
                     if d <= depth {
-                        collision_point = ps2[deepest_i] + n * d/2.0;
+                        collision_point = ps2[deepest_j] + n * d/2.0;
                         depth = d;
                         normal_vector = n;
                     }
                 }
                 for i in 0..ps2.len() {
                     let n = (ps2[i]-ps2[(i+1)%ps2.len()]).normal().normalise();
-                    let mut deepest_i = 0;
-                    for i in 1..ps1.len() {
-                        if Vector2D::dot(n, ps1[deepest_i]) > Vector2D::dot(n, ps1[i]) {
-                            deepest_i = i;
+                    let mut deepest_j = 0;
+                    for j in 1..ps1.len() {
+                        if Vector2D::dot(n, ps1[deepest_j]) > Vector2D::dot(n, ps1[j]) {
+                            deepest_j = j;
                         }
                     }
 
-                    let d = -Vector2D::dot(n, ps1[deepest_i]-ps2[i]);
+                    let d = -Vector2D::dot(n, ps1[deepest_j]-ps2[i]);
                     if d <= depth {
-                        collision_point = ps1[deepest_i] + n * d/2.0;
+                        collision_point = ps1[deepest_j] + n * d/2.0;
                         depth = d;
                         normal_vector = -n;
                     }
