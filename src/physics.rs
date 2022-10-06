@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::manifold::Manifold;
 use crate::rigidbody::RigidBody;
-use crate::shape::Shape;
+use crate::shape::AABB;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
@@ -69,12 +69,10 @@ impl PhysicsManager {
             let body_i = bodies[i].borrow();
             for j in i + 1..bodies.len() {
                 let body_j = bodies[j].borrow();
-                if Shape::intersects(
-                    &body_i.get_shape().get_aabb(),
-                    &body_i.transform.pos,
-                    &body_j.get_shape().get_aabb(),
-                    &body_j.transform.pos,
-                ) {
+
+                let aabb_i = body_i.get_shape().get_aabb(body_i.transform.pos, body_i.transform.rot);
+                let aabb_j = body_j.get_shape().get_aabb(body_j.transform.pos, body_j.transform.rot);
+                if AABB::intersects(&aabb_i, &aabb_j) {
                     out.push((bodies[i].clone(), bodies[j].clone()))
                 }
             }

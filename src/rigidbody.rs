@@ -4,6 +4,7 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 use vector2d::Vector2D;
 
+// TODO use these for shapes
 #[derive(Debug, Clone, Copy)]
 pub struct Transform {
     pub pos: Vector2D<f64>,

@@ -16,9 +16,9 @@ use rand::Rng;
 use vector2d::Vector2D;
 
 use std::collections::HashSet;
+use std::env;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use std::env;
 
 const SCREEN_WIDTH: u32 = 1600;
 const SCREEN_HEIGHT: u32 = 800;
@@ -58,39 +58,27 @@ where
 
     let mut polygons: Vec<Shape> = Vec::new();
 
-    let triangle = Shape::Polygon {
-        points: vec![
-            Vector2D::new(0.0, 20.0),
-            Vector2D::new(40.0, 20.0),
-            Vector2D::new(10.0, 90.0),
-        ],
-    };
+    let triangle = Shape::new_poly(vec![
+        Vector2D::new(0.0, 20.0),
+        Vector2D::new(40.0, 20.0),
+        Vector2D::new(10.0, 90.0),
+    ]);
     polygons.push(triangle);
 
-    let tri2 = Shape::Polygon {
-        points: vec![
-            Vector2D::new(40.0, 00.0),
-            Vector2D::new(0.0, 50.0),
-            Vector2D::new(0.0, 0.0),
-        ],
-    };
+    let tri2 = Shape::new_poly(vec![
+        Vector2D::new(40.0, 00.0),
+        Vector2D::new(0.0, 50.0),
+        Vector2D::new(0.0, 0.0),
+    ]);
     polygons.push(tri2);
 
-    let diamond = Shape::poly(vec![
+    let diamond = Shape::new_poly(vec![
         Vector2D::new(0.0, -40.0),
         Vector2D::new(50.0, 0.0),
         Vector2D::new(0.0, 40.0),
         Vector2D::new(-50.0, 0.0),
     ]);
-    // Shape::Polygon {
-    //     points: vec![
-    //         Vector2D::new(0.0, 40.0),
-    //         Vector2D::new(-50.0, 0.0),
-    //         Vector2D::new(0.0, -40.0),
-    //         Vector2D::new(50.0, 0.0),
-    //     ],
-    // };
-    //polygons.push(diamond);
+
 
     'running: loop {
         input.update();
@@ -127,26 +115,21 @@ where
             physics_update_time_accumulator / physics_frame_time,
         )?;
 
-        diamond.display(
-            &canvas,
-            &input.mouse_position().as_f64s(),
-            0.0,
-            &Color::RED,
-        )?;
+        diamond.display(&canvas, &input.mouse_position().as_f64s(), 0.0, &Color::RED)?;
         polygons.iter().enumerate().for_each(|(i, poly)| {
             let pos = &Vector2D::new((i + 1) as f64 * 100.0, 200.0);
-            let intersects = Shape::intersects(poly, pos, &diamond, &input.mouse_position().as_f64s()); 
-            let color = if intersects { Color::MAGENTA } else { Color::CYAN };
+            let intersects =
+                Shape::intersects(poly, pos, &diamond, &input.mouse_position().as_f64s());
+            let color = if intersects {
+                Color::MAGENTA
+            } else {
+                Color::CYAN
+            };
 
-            let data = Shape::collision_data(poly, pos, &diamond, &input.mouse_position().as_f64s());
+            let data =
+                Shape::collision_data(poly, pos, &diamond, &input.mouse_position().as_f64s());
 
-            poly.display(
-                &canvas,
-                pos,
-                0.0,
-                &color,
-            )
-            .unwrap();
+            poly.display(&canvas, pos, 0.0, &color).unwrap();
 
             if intersects {
                 data.display(&canvas);
@@ -162,11 +145,11 @@ where
 }
 
 pub fn add_debug_circle(physics_manager: &mut PhysicsManager, pos: Vector2D<f64>, r: f64) {
-    physics_manager.add_body(RigidBody::new(pos, Shape::Circle { r }, BOUNCY_BALL));
+    physics_manager.add_body(RigidBody::new(pos, Shape::new_circle(r), BOUNCY_BALL));
 }
 
 pub fn add_debug_rect(physics_manager: &mut PhysicsManager, pos: Vector2D<f64>, w: f64, h: f64) {
-    physics_manager.add_body(RigidBody::new(pos, Shape::Rect { w, h }, METAL));
+    physics_manager.add_body(RigidBody::new(pos, Shape::new_rect(w, h), METAL));
 }
 
 fn main() -> Result<(), String> {
@@ -179,27 +162,18 @@ fn main() -> Result<(), String> {
                 SCREEN_WIDTH as f64 / 2.0,
                 SCREEN_HEIGHT as f64 + wall_thickness / 2.0,
             ),
-            Shape::Rect {
-                w: SCREEN_WIDTH as f64 * 10.0,
-                h: wall_thickness - 2.0,
-            },
+            Shape::new_rect(SCREEN_WIDTH as f64 * 10.0, wall_thickness - 2.0),
             STATIC,
         )));
         fixed_objects.insert(physics_manager.add_body(RigidBody::new(
             Vector2D::new(SCREEN_WIDTH as f64 / 2.0, -wall_thickness / 2.0),
-            Shape::Rect {
-                w: SCREEN_WIDTH as f64 * 10.0,
-                h: wall_thickness - 2.0,
-            },
+            Shape::new_rect(SCREEN_WIDTH as f64 * 10.0, wall_thickness - 2.0),
             STATIC,
         )));
 
         fixed_objects.insert(physics_manager.add_body(RigidBody::new(
             Vector2D::new(0.0 - wall_thickness / 2.0, SCREEN_HEIGHT as f64 / 2.0),
-            Shape::Rect {
-                w: wall_thickness - 2.0,
-                h: SCREEN_HEIGHT as f64 * 10.0,
-            },
+            Shape::new_rect(wall_thickness - 2.0, SCREEN_HEIGHT as f64 * 10.0),
             STATIC,
         )));
 
@@ -208,10 +182,7 @@ fn main() -> Result<(), String> {
                 SCREEN_WIDTH as f64 + wall_thickness / 2.0,
                 SCREEN_HEIGHT as f64 / 2.0,
             ),
-            Shape::Rect {
-                w: wall_thickness - 2.0,
-                h: SCREEN_HEIGHT as f64 * 10.0,
-            },
+            Shape::new_rect(wall_thickness - 2.0, SCREEN_HEIGHT as f64 * 10.0),
             STATIC,
         )));
         Ok(Data {
