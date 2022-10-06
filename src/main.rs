@@ -63,14 +63,12 @@ where
         Vector2D::new(40.0, 20.0),
         Vector2D::new(10.0, 90.0),
     ]);
-    polygons.push(triangle);
 
     let tri2 = Shape::new_poly(vec![
         Vector2D::new(40.0, 00.0),
         Vector2D::new(0.0, 50.0),
         Vector2D::new(0.0, 0.0),
     ]);
-    polygons.push(tri2);
 
     let diamond = Shape::new_poly(vec![
         Vector2D::new(0.0, -40.0),
@@ -78,6 +76,9 @@ where
         Vector2D::new(0.0, 40.0),
         Vector2D::new(-50.0, 0.0),
     ]);
+    polygons.push(triangle);
+    // polygons.push(tri2);
+    // polygons.push(diamond);
 
 
     'running: loop {
@@ -115,25 +116,26 @@ where
             physics_update_time_accumulator / physics_frame_time,
         )?;
 
-        diamond.display(&canvas, &input.mouse_position().as_f64s(), 0.0, &Color::RED)?;
+        // diamond.display(&canvas, &input.mouse_position().as_f64s(), 0.0, &Color::RED)?;
         polygons.iter().enumerate().for_each(|(i, poly)| {
             let pos = &Vector2D::new((i + 1) as f64 * 100.0, 200.0);
-            let intersects =
-                Shape::intersects(poly, pos, &diamond, &input.mouse_position().as_f64s());
+            // let intersects =
+            //     Shape::intersects(poly, pos, &diamond, &input.mouse_position().as_f64s());
+            let intersects = poly.point_inside(pos, &input.mouse_position().as_f64s());
             let color = if intersects {
                 Color::MAGENTA
             } else {
                 Color::CYAN
             };
 
-            let data =
-                Shape::collision_data(poly, pos, &diamond, &input.mouse_position().as_f64s());
+            // let data =
+            //     Shape::collision_data(poly, pos, &diamond, &input.mouse_position().as_f64s());
 
             poly.display(&canvas, pos, 0.0, &color).unwrap();
 
-            if intersects {
-                data.display(&canvas);
-            }
+            // if intersects {
+            //     data.display(&canvas);
+            // }
         });
 
         canvas.present();

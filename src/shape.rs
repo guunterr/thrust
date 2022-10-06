@@ -12,6 +12,7 @@ enum ShapeInner {
     Circle { r: f64 },
     Polygon { points: Vec<Vector2D<f64>> },
 }
+// TODO move shape collision data here
 
 #[derive(Debug, PartialEq)]
 pub struct Shape(ShapeInner);
@@ -52,7 +53,6 @@ pub struct AABB {
     min: Vector2D<f64>,
     max: Vector2D<f64>,
 }
-
 impl AABB {
     pub fn intersects(box1: &AABB, box2: &AABB) -> bool {
         box1.max.x >= box2.min.x
@@ -141,14 +141,26 @@ impl Shape {
         }
     }
 
-    // TODO implement for polygon
-    pub fn point_inside(&self, offset: &Vector2D<f64>, point: &Vector2D<f64>) -> bool {
-        match self.0 {
-            ShapeInner::Circle { r, .. } => {
-                let dist = (offset - point).length_squared();
+    pub fn point_inside(&self, pos: &Vector2D<f64>, point: &Vector2D<f64>) -> bool {
+        match &self.0 {
+            ShapeInner::Circle { r } => {
+                let dist = (pos - point).length_squared();
                 dist < r.powi(2)
             }
-            ShapeInner::Polygon { .. } => todo!(),
+            ShapeInner::Polygon { points } => {
+                let ps = &points.iter().map(|p| p + pos).collect::<Vec<_>>();
+                for i in 0..ps.len() {
+                    let p1 = ps[i];
+                    let p2 = ps[(i + 1) % ps.len()];
+                    let angle = ((p2 - p1).angle() - (p1 - *point).angle()).rem_euclid(2.0 * PI);
+
+                    if !(0.0..=PI).contains(&angle) {
+                        println!("{i} - {angle}");
+                        return false;
+                    }
+                }
+                true
+            },
         }
     }
 
