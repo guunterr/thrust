@@ -95,7 +95,7 @@ impl Shape {
     pub fn area(&self) -> f64 {
         match self.0 {
             ShapeInner::Circle { r, .. } => PI * r.powi(2),
-            ShapeInner::Polygon { .. } => 10.0, // TODO area calculation
+            ShapeInner::Polygon { .. } => 10000.0, // TODO area calculation
         }
     }
 
@@ -155,7 +155,6 @@ impl Shape {
                     let angle = ((p2 - p1).angle() - (p1 - *point).angle()).rem_euclid(2.0 * PI);
 
                     if !(0.0..=PI).contains(&angle) {
-                        println!("{i} - {angle}");
                         return false;
                     }
                 }
@@ -191,9 +190,7 @@ impl Shape {
                         let mut min_dist = INFINITY;
                         for &q in ps2 {
                             let dist = Vector2D::dot(n, p1 - q);
-                            if dist < min_dist {
-                                min_dist = dist
-                            }
+                            min_dist = min_dist.min(dist);
                         }
 
                         if min_dist > 0.0 {
@@ -205,7 +202,35 @@ impl Shape {
                 sat(ps1, ps2) && sat(ps2, ps1)
             }
             (Shape(ShapeInner::Polygon { points }), Shape(ShapeInner::Circle { r })) => {
-                todo!();
+                let ps = &points.iter().map(|p| p + pos1).collect::<Vec<_>>();
+
+                for i in 0..ps.len() {
+                    let p1 = ps[i];
+                    let p2 = ps[(i + 1) % ps.len()];
+                    let n = Vector2D::new(p1.y - p2.y, p2.x - p1.x).normalise();
+
+                    let dist = Vector2D::dot(n, p1 - *pos2);
+
+                    if dist > *r {
+                        return false;
+                    }
+                }
+
+                for p in ps {
+                    let n = (p - pos2).normalise();
+
+                    let mut min_dist = INFINITY;
+                    for &q in ps {
+                        let dist = Vector2D::dot(n, q - *pos2);
+                        min_dist = min_dist.min(dist);
+                    }
+
+                    if min_dist > *r {
+                        return false
+                    }
+                }
+
+                true
             }
             (shape1, shape2) => Shape::intersects(shape2, pos2, shape1, pos1),
         }
@@ -229,18 +254,63 @@ impl Shape {
                     depth: overlap,
                 }
             }
+
             (
-                Shape(ShapeInner::Polygon { points: points1 }),
-                Shape(ShapeInner::Circle { r: r }),
+                Shape(ShapeInner::Polygon { points }),
+                Shape(ShapeInner::Circle { r }),
             ) => {
-                // TODO  implement
+                let ps = &points.iter().map(|p| p + pos1).collect::<Vec<_>>();
+
+                let mut collision_point = Vector2D::new(0.0, 0.0);
+                let mut normal_vector = Vector2D::new(0.0, 0.0);
+                let mut depth = INFINITY;
+
+                for i in 0..ps.len() {
+                    let n = (ps[i] - ps[(i + 1) % ps.len()]).normal().normalise();
+
+                    let deepest_point = pos2 - &(n* *r);
+                    let d = -Vector2D::dot(n, deepest_point - ps[i]);
+                    if d <= depth {
+                        collision_point = deepest_point + n*d / 2.0;
+                        depth = d;
+                        normal_vector = n;
+                    }
+                }
+
+                for i in 0..ps.len() {
+                    let p0 = ps[i];
+                    let p1 = ps[(i+1)%ps.len()];
+                    let p2 = ps[(i+2)%ps.len()];
+
+                    let s0 = p1 - p0;
+                    let s1 = p2 - p1;
+
+                    let l0 = s0.length();
+                    let l1 = s1.length();
+
+                    let dot0 = Vector2D::dot(s0, pos2 - &p0)/l0.powi(2);
+                    let dot1 = Vector2D::dot(s1, pos2 - &p1)/l1.powi(2);
+
+                    if dot0 < 1.0 || 0.0 < dot1 {
+                        continue;
+                    }
+
+                    let d = *r - (pos2 - &p1).length();
+                    let n = -(pos2 - &p1).normalise();
+                    if 0.0 < d && d <= depth {
+                        collision_point = p1 + n * d / 2.0;
+                        depth = d;
+                        normal_vector = -n;
+                    }
+                }
+
                 CollisionData {
-                    collision_point: Vector2D::new(0.0, 0.0),
-                    normal_vector: Vector2D::new(0.0, 0.0),
-                    depth: 0.0,
-                };
-                todo!()
+                    collision_point,
+                    normal_vector,
+                    depth,
+                }
             }
+
             (
                 Shape(ShapeInner::Polygon { points: points1 }),
                 Shape(ShapeInner::Polygon { points: points2 }),

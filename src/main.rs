@@ -80,6 +80,8 @@ where
     // polygons.push(tri2);
     // polygons.push(diamond);
 
+    let circ = Shape::new_circle(20.0);
+
 
     'running: loop {
         input.update();
@@ -116,26 +118,27 @@ where
             physics_update_time_accumulator / physics_frame_time,
         )?;
 
-        // diamond.display(&canvas, &input.mouse_position().as_f64s(), 0.0, &Color::RED)?;
+        circ.display(&canvas, &input.mouse_position().as_f64s(), 0.0, &Color::RED)?;
         polygons.iter().enumerate().for_each(|(i, poly)| {
             let pos = &Vector2D::new((i + 1) as f64 * 100.0, 200.0);
-            // let intersects =
-            //     Shape::intersects(poly, pos, &diamond, &input.mouse_position().as_f64s());
-            let intersects = poly.point_inside(pos, &input.mouse_position().as_f64s());
+
+            let intersects =
+                Shape::intersects(poly, pos, &circ, &input.mouse_position().as_f64s());
+            // let intersects = poly.point_inside(pos, &input.mouse_position().as_f64s());
             let color = if intersects {
                 Color::MAGENTA
             } else {
                 Color::CYAN
             };
 
-            // let data =
-            //     Shape::collision_data(poly, pos, &diamond, &input.mouse_position().as_f64s());
+            let data =
+                Shape::collision_data(poly, pos, &circ, &input.mouse_position().as_f64s());
 
             poly.display(&canvas, pos, 0.0, &color).unwrap();
 
-            // if intersects {
-            //     data.display(&canvas);
-            // }
+            if intersects {
+                data.display(&canvas);
+            }
         });
 
         canvas.present();
