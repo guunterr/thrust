@@ -55,10 +55,10 @@ pub struct AABB {
 }
 impl AABB {
     pub fn intersects(box1: &AABB, box2: &AABB) -> bool {
-        box1.max.x >= box2.min.x
+               box1.max.x >= box2.min.x
             && box1.max.y >= box2.min.y
             && box2.max.x >= box1.min.x
-            && box2.max.y >= box1.min.x
+            && box2.max.y >= box1.min.y
     }
 }
 
