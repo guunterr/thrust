@@ -93,9 +93,26 @@ impl CollisionData {
 
 impl Shape {
     pub fn area(&self) -> f64 {
-        match self.0 {
+        match &self.0 {
             ShapeInner::Circle { r, .. } => PI * r.powi(2),
-            ShapeInner::Polygon { .. } => 10000.0, // TODO area calculation
+            ShapeInner::Polygon { points } => {
+                //TODO: TEST THIS!
+                fn triangle_area(points: &[Vector2D<f64>; 3]) -> f64{
+                    let e1 = points[0] - points[1];
+                    let height_normal = e1.normal().normalise();
+                    let e2 = points[2] - points[1];
+
+                    (Vector2D::dot(height_normal, e2) * e1.length()).abs()
+                }
+                let mut area = 0.0;
+                let p1 = points[0];
+                for i in 0..points.len()-2{
+                    let p2 = points[i+1];
+                    let p3 = points[i+2];
+                    area += triangle_area(&[p1, p2, p3]);
+                }
+                area
+            },
         }
     }
 
@@ -148,6 +165,7 @@ impl Shape {
                 dist < r.powi(2)
             }
             ShapeInner::Polygon { points } => {
+                //This is mad
                 let ps = &points.iter().map(|p| p + pos).collect::<Vec<_>>();
                 for i in 0..ps.len() {
                     let p1 = ps[i];
